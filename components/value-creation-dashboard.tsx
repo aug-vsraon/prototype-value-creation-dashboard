@@ -1161,7 +1161,7 @@ export default function ValueCreationDashboard() {
     <div className="min-h-screen bg-[#FAFAFA]">
       <Sidebar activeView={currentView} />
       
-      <main className="md:ml-12 p-6 lg:p-8 max-w-[1400px]">
+      <main className="md:ml-12 p-6 lg:p-8 max-w-[1400px] mx-auto">
         {isLoading ? (
           <div className="space-y-6">
             <SkeletonCard className="h-48" />
