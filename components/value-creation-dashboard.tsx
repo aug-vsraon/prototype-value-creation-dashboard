@@ -135,6 +135,13 @@ const REAL_DATA = {
         .slice(-4)
         .map(w => w.appointment_scheduling),
     },
+    {
+      name: "Quoting",
+      status: "Not active" as const,
+      laborCostSaved: null,
+      percentOfTotal: null,
+      trend: [0, 0, 0, 0],
+    },
   ] as WorkflowData[],
   // Track & Trace data from tier2_weekly_2026
   trackAndTrace: (() => {
@@ -272,19 +279,45 @@ const formatNumber = (value: number): string => {
   return new Intl.NumberFormat("en-US").format(value)
 }
 
-// Augment Logo Component
-function AugmentLogo({ className = "" }: { className?: string }) {
+// Augment Icon Mark Component — circular starburst only, no wordmark
+function AugmentIconMark({ className = "" }: { className?: string }) {
   return (
-    <svg 
-      width="18" 
-      height="18" 
-      viewBox="0 0 24 24" 
-      fill="currentColor"
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 32 32"
+      fill="none"
       className={className}
     >
-      {/* 8-pointed flower/star shape with center circle */}
-      <path d="M12 0C12 0 14 4 14.5 6C15.5 4.5 19 2 19 2C19 2 17.5 5.5 18 6.5C20 7 24 9 24 9C24 9 20 11 18 11.5C17.5 12.5 19 16 19 16C19 16 15.5 13.5 14.5 14.5C14 16.5 12 24 12 24C12 24 10 16.5 9.5 14.5C8.5 13.5 5 16 5 16C5 16 6.5 12.5 6 11.5C4 11 0 9 0 9C0 9 4 7 6 6.5C6.5 5.5 5 2 5 2C5 2 8.5 4.5 9.5 6C10 4 12 0 12 0Z" transform="translate(0, 3) scale(1)" />
-      <circle cx="12" cy="12" r="3" fill="#0D2318" />
+      <mask
+        id="iconMask"
+        style={{ maskType: "luminance" }}
+        maskUnits="userSpaceOnUse"
+        x="0"
+        y="0"
+        width="32"
+        height="32"
+      >
+        <path
+          d="M32 16C32 7.16344 24.8366 0 16 0C7.16344 0 0 7.16344 0 16C0 24.8366 7.16344 32 16 32C24.8366 32 32 24.8366 32 16Z"
+          fill="white"
+        />
+      </mask>
+      <g mask="url(#iconMask)">
+        <path
+          opacity="0.5"
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M20.2892 5.64611C19.5491 5.33955 17.7938 6.63278 15.9995 8.9858C14.2054 6.63318 12.4503 5.34021 11.7103 5.64674C10.9703 5.95326 10.6436 8.10838 11.0384 11.0404C8.10607 10.6455 5.95069 10.9722 5.64415 11.7122C5.3376 12.4523 6.63078 14.2075 8.98372 16.0018C6.63083 17.796 5.33768 19.5513 5.64423 20.2913C5.95077 21.0314 8.10619 21.3581 11.0386 20.9631C10.6437 23.8953 10.9704 26.0505 11.7104 26.357C12.4504 26.6636 14.2054 25.3707 15.9995 23.0181C17.7937 25.3711 19.549 26.6642 20.289 26.3577C21.0291 26.0511 21.3559 23.8954 20.9608 20.9628C23.8931 21.3578 26.0485 21.031 26.3551 20.291C26.6616 19.5509 25.3687 17.7959 23.0161 16.0018C25.3687 14.2077 26.6617 12.4526 26.3552 11.7126C26.0486 10.9725 23.8932 10.6458 20.9609 11.0408C21.356 8.10823 21.0292 5.95266 20.2892 5.64611ZM15.9997 20.4012C18.4297 20.4012 20.3997 18.4313 20.3997 16.0012C20.3997 13.5712 18.4297 11.6012 15.9997 11.6012C13.5696 11.6012 11.5997 13.5712 11.5997 16.0012C11.5997 18.4313 13.5696 20.4012 15.9997 20.4012Z"
+          fill="white"
+        />
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M15.9996 4.12061C15.1507 4.12061 13.9566 6.09853 13.154 9.1299C10.443 7.5539 8.2001 6.99964 7.59981 7.59995C6.9995 8.20024 7.55376 10.4432 9.12979 13.1542C6.0982 13.9568 4.12012 15.1509 4.12012 15.9999C4.12012 16.8489 6.0982 18.043 9.12978 18.8456C7.55376 21.5566 6.9995 23.7996 7.5998 24.3999C8.20009 25.0002 10.443 24.4459 13.154 22.87C13.9565 25.9014 15.1506 27.8794 15.9996 27.8794C16.8486 27.8794 18.0427 25.9013 18.8453 22.8698C21.5564 24.4459 23.7995 25.0002 24.3998 24.3999C25.0001 23.7996 24.4458 21.5566 22.8697 18.8455C25.901 18.0429 27.8789 16.8488 27.8789 15.9999C27.8789 15.151 25.901 13.9569 22.8697 13.1543C24.4458 10.4432 25.0001 8.20022 24.3998 7.59992C23.7995 6.9996 21.5564 7.55391 18.8452 9.13002C18.0427 6.09857 16.8486 4.12061 15.9996 4.12061ZM15.9999 19.9598C18.1868 19.9598 19.9597 18.1869 19.9597 16C19.9597 13.813 18.1868 12.0401 15.9999 12.0401C13.8129 12.0401 12.04 13.813 12.04 16C12.04 18.1869 13.8129 19.9598 15.9999 19.9598Z"
+          fill="white"
+        />
+      </g>
     </svg>
   )
 }
@@ -322,9 +355,9 @@ function Sidebar({ activeView }: { activeView: string }) {
 
   return (
     <aside className="fixed left-0 top-0 h-full w-12 bg-[#0D2318] flex flex-col items-center py-3 z-50 max-md:hidden">
-      {/* Augment Logo */}
-      <div className="p-2 text-white mb-4">
-        <AugmentLogo />
+      {/* Augment Icon Mark */}
+      <div className="flex items-center justify-center mb-4">
+        <AugmentIconMark />
       </div>
       
       {/* Main Navigation Icons */}
@@ -736,7 +769,7 @@ function ProgramValueSummary({
                       : "—"}
                   </td>
                   <td className="px-5 py-4 flex justify-end">
-                    <Sparkline data={workflow.trend} />
+                    <Sparkline data={workflow.trend} color={workflow.status === "Active" ? "#16A34A" : "#9CA3AF"} />
                   </td>
                   <td className="px-5 py-4">
                     {workflow.status === "Active" && (
@@ -778,23 +811,6 @@ function ProgramValueSummary({
         </div>
       </div>
 
-      {/* Secondary Value Callouts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-5">
-          <h3 className="text-sm font-medium text-[#6B7280]">Carrying Cost Savings</h3>
-          <p className="text-xl font-semibold text-[#111827] mt-1">$4,200 est.</p>
-          <p className="text-xs text-[#9CA3AF] mt-2">
-            Not included in headline · Document Collection
-          </p>
-        </div>
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-5">
-          <h3 className="text-sm font-medium text-[#6B7280]">After-Hours Capacity Value</h3>
-          <p className="text-xl font-semibold text-[#9CA3AF] mt-1">Coming soon</p>
-          <p className="text-xs text-[#9CA3AF] mt-2">
-            Not included in headline · Carrier Selection
-          </p>
-        </div>
-      </div>
     </div>
   )
 }
@@ -972,18 +988,6 @@ function WorkflowDrillDown({
           </div>
         )}
 
-        {/* Escalations - only for Track & Trace */}
-        {workflowName === "Track & Trace" && (
-          <div className="bg-white rounded-lg border border-[#E5E7EB] p-5">
-            <h3 className="text-sm font-medium text-[#6B7280] mb-2">Escalations Triggered</h3>
-            <p className="text-2xl font-semibold text-[#111827]">{data.trackAndTrace.escalations.total}</p>
-            <div className="flex gap-6 mt-2 text-xs text-[#6B7280]">
-              <span>Delayed ({data.trackAndTrace.escalations.delayed})</span>
-              <span>No Response ({data.trackAndTrace.escalations.noResponse})</span>
-              <span>Exception ({data.trackAndTrace.escalations.exception})</span>
-            </div>
-          </div>
-        )}
 
         {/* Carrier Selection specific metrics */}
         {workflowName === "Carrier Selection" && (
