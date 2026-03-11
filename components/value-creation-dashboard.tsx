@@ -145,7 +145,7 @@ const REAL_DATA = {
   ] as WorkflowData[],
   // Track & Trace data from tier2_weekly_2026
   trackAndTrace: (() => {
-    const t2Data = dashboardData.track_and_trace.tier2_weekly_2026
+    const t2Data = dashboardData.track_and_trace.tier2_weekly_2026.filter(w => w.week_iso !== "2026-03-09")
     const totalCalls = t2Data.reduce((sum, w) => sum + w.calls_made, 0)
     const totalEmails = t2Data.reduce((sum, w) => sum + w.emails_sent, 0)
     const totalSms = t2Data.reduce((sum, w) => sum + w.sms_sent, 0)
