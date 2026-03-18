@@ -1,171 +1,122 @@
 {
   "meta": {
     "brokerage_display_name": "Transportation One",
-    "brokerage_key": "transportation-one",
-    "generated_date": "2026-03-10",
-    "data_coverage": {
-      "track_and_trace": "Jan 5 – Mar 8, 2026 (10 weeks); historical back to Apr 2025",
-      "carrier_selection": "Dec 29, 2025 – Jan 30, 2026 (5 weeks)",
-      "document_collection": "Feb 2 – Feb 23, 2026 (4 weeks)",
-      "load_building": "Illustrative only (12% of known workflows)",
-      "appointment_scheduling": "Illustrative only (5% of known workflows)"
-    },
-    "notes": [
-      "Labor cost = actions × minutes_per_action / 60 × hourly_rate",
-      "load_building and appointment_scheduling values are estimated as 12% and 5% of combined known workflow value",
-      "Weeks with zero in a workflow indicate data not yet available for that period"
-    ]
+    "generated_date": "2026-03-10"
   },
   "parameters": {
-    "hourly_rate": 22,
     "minutes_per_email": 0.5,
     "minutes_per_call": 2,
     "minutes_per_message": 0.5,
-    "minutes_per_tms_update": 1,
-    "minutes_per_cs_email": 3,
-    "minutes_per_load_build": 12,
-    "minutes_per_appointment": 8,
-    "min_call_duration_seconds": 15
+    "minutes_per_tms_update": 1
   },
   "tier1_program_value": {
     "summary": {
-      "total_period_value": 97643.85,
-      "avg_weekly_value": 9764.39,
-      "weeks_included": 10,
       "period": "Jan 5 – Mar 8, 2026"
-    },
-    "workflow_contributions": {
-      "document_collection": {
-        "total": 8035.14,
-        "pct_of_total": 8.2
-      },
-      "track_and_trace": {
-        "total": 70013.16,
-        "pct_of_total": 71.7
-      },
-      "carrier_selection": {
-        "total": 5407.97,
-        "pct_of_total": 5.5
-      },
-      "load_building": {
-        "total": 10014.75,
-        "pct_of_total": 10.3
-      },
-      "appointment_scheduling": {
-        "total": 4172.83,
-        "pct_of_total": 4.3
-      }
-    },
-    "weekly_trend": [
-      {
-        "week": "Dec 29, 2025",
-        "week_iso": "2025-12-29",
-        "total": 375.8,
-        "document_collection": 0,
-        "track_and_trace": 0,
-        "carrier_selection": 321.2,
-        "load_building": 38.54,
-        "appointment_scheduling": 16.06
-      },
+    }
+  },
+  "track_and_trace": {
+    "tier2_weekly_2026": [
       {
         "week": "Jan 5, 2026",
         "week_iso": "2026-01-05",
-        "total": 12768.33,
-        "document_collection": 0,
-        "track_and_trace": 9501.43,
-        "carrier_selection": 1411.67,
-        "load_building": 1309.57,
-        "appointment_scheduling": 545.66
+        "calls_made": 5430,
+        "emails_sent": 4675,
+        "sms_sent": 0,
+        "tms_updates": 5703
       },
       {
         "week": "Jan 12, 2026",
         "week_iso": "2026-01-12",
-        "total": 10787.63,
-        "document_collection": 0,
-        "track_and_trace": 8087.57,
-        "carrier_selection": 1132.63,
-        "load_building": 1106.42,
-        "appointment_scheduling": 461.01
+        "calls_made": 4581,
+        "emails_sent": 3765,
+        "sms_sent": 5,
+        "tms_updates": 5355
       },
       {
         "week": "Jan 19, 2026",
         "week_iso": "2026-01-19",
-        "total": 8770.91,
-        "document_collection": 0,
-        "track_and_trace": 6428.4,
-        "carrier_selection": 1068.1,
-        "load_building": 899.58,
-        "appointment_scheduling": 374.83
+        "calls_made": 3330,
+        "emails_sent": 2945,
+        "sms_sent": 4,
+        "tms_updates": 4974
       },
       {
         "week": "Jan 26, 2026",
         "week_iso": "2026-01-26",
-        "total": 11644.78,
-        "document_collection": 0,
-        "track_and_trace": 8478.43,
-        "carrier_selection": 1474.37,
-        "load_building": 1194.34,
-        "appointment_scheduling": 497.64
+        "calls_made": 3902,
+        "emails_sent": 3204,
+        "sms_sent": 1379,
+        "tms_updates": 6153
       },
       {
         "week": "Feb 2, 2026",
         "week_iso": "2026-02-02",
-        "total": 12909.47,
-        "document_collection": 1857.53,
-        "track_and_trace": 9176.2,
-        "carrier_selection": 0,
-        "load_building": 1324.05,
-        "appointment_scheduling": 551.69
+        "calls_made": 4044,
+        "emails_sent": 3778,
+        "sms_sent": 1652,
+        "tms_updates": 6078
       },
       {
         "week": "Feb 9, 2026",
         "week_iso": "2026-02-09",
-        "total": 9464.6,
-        "document_collection": 1693.27,
-        "track_and_trace": 6396.13,
-        "carrier_selection": 0,
-        "load_building": 970.73,
-        "appointment_scheduling": 404.47
+        "calls_made": 2688,
+        "emails_sent": 2876,
+        "sms_sent": 1197,
+        "tms_updates": 3922
       },
       {
         "week": "Feb 16, 2026",
         "week_iso": "2026-02-16",
-        "total": 9575.71,
-        "document_collection": 1955.07,
-        "track_and_trace": 6229.3,
-        "carrier_selection": 0,
-        "load_building": 982.12,
-        "appointment_scheduling": 409.22
+        "calls_made": 2781,
+        "emails_sent": 2590,
+        "sms_sent": 1089,
+        "tms_updates": 4069
       },
       {
         "week": "Feb 23, 2026",
         "week_iso": "2026-02-23",
-        "total": 12350.92,
-        "document_collection": 2529.27,
-        "track_and_trace": 8027.07,
-        "carrier_selection": 0,
-        "load_building": 1266.76,
-        "appointment_scheduling": 527.82
+        "calls_made": 3473,
+        "emails_sent": 3557,
+        "sms_sent": 1463,
+        "tms_updates": 4906
       },
       {
         "week": "Mar 2, 2026",
         "week_iso": "2026-03-02",
-        "total": 8995.7,
-        "document_collection": 0,
-        "track_and_trace": 7688.63,
-        "carrier_selection": 0,
-        "load_building": 922.64,
-        "appointment_scheduling": 384.43
+        "calls_made": 3247,
+        "emails_sent": 3400,
+        "sms_sent": 1446,
+        "tms_updates": 4783
       },
       {
         "week": "Mar 9, 2026",
         "week_iso": "2026-03-09",
-        "total": 60.92,
-        "document_collection": 0,
-        "track_and_trace": 52.07,
-        "carrier_selection": 0,
-        "load_building": 6.25,
-        "appointment_scheduling": 2.6
+        "calls_made": 10,
+        "emails_sent": 7,
+        "sms_sent": 25,
+        "tms_updates": 58
+      }
+    ],
+    "tier3_weekly_impact": [
+      {
+        "week_iso": "2025-12-29",
+        "loads_actioned": 466
+      },
+      {
+        "week_iso": "2026-01-05",
+        "loads_actioned": 1753
+      },
+      {
+        "week_iso": "2026-01-12",
+        "loads_actioned": 1406
+      },
+      {
+        "week_iso": "2026-01-19",
+        "loads_actioned": 1186
+      },
+      {
+        "week_iso": "2026-01-26",
+        "loads_actioned": 1313
       }
     ]
   },
@@ -175,987 +126,72 @@
         "week": "Feb 2, 2026",
         "week_iso": "2026-02-02",
         "calls_placed": 164,
-        "emails_sent": 2369,
-        "total_outreach_actions": 2533,
-        "labor_hours_replaced": 84.43,
-        "labor_cost_saved": 1857.53,
-        "actual_call_minutes_total": null
+        "emails_sent": 2369
       },
       {
         "week": "Feb 9, 2026",
         "week_iso": "2026-02-09",
         "calls_placed": 156,
-        "emails_sent": 2153,
-        "total_outreach_actions": 2309,
-        "labor_hours_replaced": 76.97,
-        "labor_cost_saved": 1693.27,
-        "actual_call_minutes_total": null
+        "emails_sent": 2153
       },
       {
         "week": "Feb 16, 2026",
         "week_iso": "2026-02-16",
         "calls_placed": 132,
-        "emails_sent": 2534,
-        "total_outreach_actions": 2666,
-        "labor_hours_replaced": 88.87,
-        "labor_cost_saved": 1955.07,
-        "actual_call_minutes_total": null
+        "emails_sent": 2534
       },
       {
         "week": "Feb 23, 2026",
         "week_iso": "2026-02-23",
         "calls_placed": 132,
-        "emails_sent": 3317,
-        "total_outreach_actions": 3449,
-        "labor_hours_replaced": 114.97,
-        "labor_cost_saved": 2529.27,
-        "actual_call_minutes_total": null
+        "emails_sent": 3317
       }
     ],
     "tier2_pod_attribution_weekly": [
       {
-        "week": "March 8, 2026",
         "week_iso": "2026-03-02",
-        "total_loads": 99,
-        "avg_hours_augie": 5.2,
-        "avg_hours_no_augie": 63.8,
-        "speed_advantage_hrs": 58.6,
         "pods_augie": 5,
-        "pods_no_augie": 27,
-        "attribution_pct": 5.1,
         "time_buckets": {
           "within_1_day": 5,
           "within_2_days": 0,
-          "within_3_days": 0,
-          "after_3_days": 0
+          "within_3_days": 0
         }
       },
       {
-        "week": "March 1, 2026",
         "week_iso": "2026-02-23",
-        "total_loads": 1719,
-        "avg_hours_augie": 27.6,
-        "avg_hours_no_augie": 27.2,
-        "speed_advantage_hrs": -0.3,
         "pods_augie": 258,
-        "pods_no_augie": 1240,
-        "attribution_pct": 15,
         "time_buckets": {
           "within_1_day": 233,
           "within_2_days": 21,
-          "within_3_days": 4,
-          "after_3_days": 0
+          "within_3_days": 4
         }
       },
       {
-        "week": "February 22, 2026",
         "week_iso": "2026-02-16",
-        "total_loads": 1586,
-        "avg_hours_augie": 59.4,
-        "avg_hours_no_augie": 29.8,
-        "speed_advantage_hrs": -29.6,
         "pods_augie": 209,
-        "pods_no_augie": 1331,
-        "attribution_pct": 13,
         "time_buckets": {
           "within_1_day": 172,
           "within_2_days": 19,
-          "within_3_days": 6,
-          "after_3_days": 12
+          "within_3_days": 6
         }
       },
       {
-        "week": "February 15, 2026",
         "week_iso": "2026-02-09",
-        "total_loads": 1643,
-        "avg_hours_augie": 38.1,
-        "avg_hours_no_augie": 39,
-        "speed_advantage_hrs": 0.8,
         "pods_augie": 285,
-        "pods_no_augie": 1331,
-        "attribution_pct": 17,
         "time_buckets": {
           "within_1_day": 241,
           "within_2_days": 18,
-          "within_3_days": 10,
-          "after_3_days": 16
+          "within_3_days": 10
         }
       },
       {
-        "week": "February 8, 2026",
         "week_iso": "2026-02-02",
-        "total_loads": 1594,
-        "avg_hours_augie": 40.4,
-        "avg_hours_no_augie": 29.4,
-        "speed_advantage_hrs": -11.1,
         "pods_augie": 258,
-        "pods_no_augie": 1310,
-        "attribution_pct": 16,
         "time_buckets": {
           "within_1_day": 215,
           "within_2_days": 16,
-          "within_3_days": 12,
-          "after_3_days": 15
+          "within_3_days": 12
         }
-      }
-    ],
-    "tier2_collection_speed": [
-      {
-        "week": "March 8, 2026",
-        "week_iso": "2026-03-02",
-        "avg_hrs_augie": 5.2,
-        "avg_hrs_no_augie": 63.8,
-        "speed_advantage_hrs": 58.6
-      },
-      {
-        "week": "March 1, 2026",
-        "week_iso": "2026-02-23",
-        "avg_hrs_augie": 27.6,
-        "avg_hrs_no_augie": 27.2,
-        "speed_advantage_hrs": -0.3
-      },
-      {
-        "week": "February 22, 2026",
-        "week_iso": "2026-02-16",
-        "avg_hrs_augie": 59.4,
-        "avg_hrs_no_augie": 29.8,
-        "speed_advantage_hrs": -29.6
-      },
-      {
-        "week": "February 15, 2026",
-        "week_iso": "2026-02-09",
-        "avg_hrs_augie": 38.1,
-        "avg_hrs_no_augie": 39,
-        "speed_advantage_hrs": 0.8
-      },
-      {
-        "week": "February 8, 2026",
-        "week_iso": "2026-02-02",
-        "avg_hrs_augie": 40.4,
-        "avg_hrs_no_augie": 29.4,
-        "speed_advantage_hrs": -11.1
-      }
-    ],
-    "tier3_weekly_impact": [
-      {
-        "week": "Dec 29, 2025",
-        "week_iso": "2025-12-29",
-        "loads_with_outreach": 383,
-        "pod_collected_within_3_days": 302,
-        "collection_rate_pct": 78.9,
-        "estimated_interest_savings": 22
-      },
-      {
-        "week": "Jan 5, 2026",
-        "week_iso": "2026-01-05",
-        "loads_with_outreach": 1453,
-        "pod_collected_within_3_days": 1062,
-        "collection_rate_pct": 73.1,
-        "estimated_interest_savings": 73
-      },
-      {
-        "week": "Jan 12, 2026",
-        "week_iso": "2026-01-12",
-        "loads_with_outreach": 1215,
-        "pod_collected_within_3_days": 743,
-        "collection_rate_pct": 61.2,
-        "estimated_interest_savings": 50
-      },
-      {
-        "week": "Jan 19, 2026",
-        "week_iso": "2026-01-19",
-        "loads_with_outreach": 1039,
-        "pod_collected_within_3_days": 630,
-        "collection_rate_pct": 60.6,
-        "estimated_interest_savings": 43
-      },
-      {
-        "week": "Jan 26, 2026",
-        "week_iso": "2026-01-26",
-        "loads_with_outreach": 974,
-        "pod_collected_within_3_days": 623,
-        "collection_rate_pct": 64,
-        "estimated_interest_savings": 42
-      }
-    ]
-  },
-  "track_and_trace": {
-    "tier2_weekly_2026": [
-      {
-        "week": "Jan 5, 2026",
-        "week_iso": "2026-01-05",
-        "tms_updates": 5703,
-        "sms_sent": 0,
-        "calls_made": 5430,
-        "emails_sent": 4675,
-        "total_outreach_actions": 10105,
-        "labor_hours_replaced": 431.88,
-        "labor_cost_saved": 9501.43,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jan 12, 2026",
-        "week_iso": "2026-01-12",
-        "tms_updates": 5355,
-        "sms_sent": 5,
-        "calls_made": 4581,
-        "emails_sent": 3765,
-        "total_outreach_actions": 8351,
-        "labor_hours_replaced": 367.62,
-        "labor_cost_saved": 8087.57,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jan 19, 2026",
-        "week_iso": "2026-01-19",
-        "tms_updates": 4974,
-        "sms_sent": 4,
-        "calls_made": 3330,
-        "emails_sent": 2945,
-        "total_outreach_actions": 6279,
-        "labor_hours_replaced": 292.2,
-        "labor_cost_saved": 6428.4,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jan 26, 2026",
-        "week_iso": "2026-01-26",
-        "tms_updates": 6153,
-        "sms_sent": 1379,
-        "calls_made": 3902,
-        "emails_sent": 3204,
-        "total_outreach_actions": 8485,
-        "labor_hours_replaced": 385.38,
-        "labor_cost_saved": 8478.43,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Feb 2, 2026",
-        "week_iso": "2026-02-02",
-        "tms_updates": 6078,
-        "sms_sent": 1652,
-        "calls_made": 4044,
-        "emails_sent": 3778,
-        "total_outreach_actions": 9474,
-        "labor_hours_replaced": 417.1,
-        "labor_cost_saved": 9176.2,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Feb 9, 2026",
-        "week_iso": "2026-02-09",
-        "tms_updates": 3922,
-        "sms_sent": 1197,
-        "calls_made": 2688,
-        "emails_sent": 2876,
-        "total_outreach_actions": 6761,
-        "labor_hours_replaced": 290.73,
-        "labor_cost_saved": 6396.13,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Feb 16, 2026",
-        "week_iso": "2026-02-16",
-        "tms_updates": 4069,
-        "sms_sent": 1089,
-        "calls_made": 2781,
-        "emails_sent": 2590,
-        "total_outreach_actions": 6460,
-        "labor_hours_replaced": 283.15,
-        "labor_cost_saved": 6229.3,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Feb 23, 2026",
-        "week_iso": "2026-02-23",
-        "tms_updates": 4906,
-        "sms_sent": 1463,
-        "calls_made": 3473,
-        "emails_sent": 3557,
-        "total_outreach_actions": 8493,
-        "labor_hours_replaced": 364.87,
-        "labor_cost_saved": 8027.07,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Mar 2, 2026",
-        "week_iso": "2026-03-02",
-        "tms_updates": 4783,
-        "sms_sent": 1446,
-        "calls_made": 3247,
-        "emails_sent": 3400,
-        "total_outreach_actions": 8093,
-        "labor_hours_replaced": 349.48,
-        "labor_cost_saved": 7688.63,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Mar 9, 2026",
-        "week_iso": "2026-03-09",
-        "tms_updates": 58,
-        "sms_sent": 25,
-        "calls_made": 10,
-        "emails_sent": 7,
-        "total_outreach_actions": 42,
-        "labor_hours_replaced": 2.37,
-        "labor_cost_saved": 52.07,
-        "actual_call_minutes_total": null
-      }
-    ],
-    "tier2_weekly_historical": [
-      {
-        "week": "Mar 24, 2025",
-        "week_iso": "2025-03-24",
-        "tms_updates": 0,
-        "sms_sent": 0,
-        "calls_made": 0,
-        "emails_sent": 0,
-        "total_outreach_actions": 0,
-        "labor_hours_replaced": 0,
-        "labor_cost_saved": 0,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Mar 31, 2025",
-        "week_iso": "2025-03-31",
-        "tms_updates": 1,
-        "sms_sent": 0,
-        "calls_made": 5,
-        "emails_sent": 0,
-        "total_outreach_actions": 5,
-        "labor_hours_replaced": 0.18,
-        "labor_cost_saved": 4.03,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Apr 7, 2025",
-        "week_iso": "2025-04-07",
-        "tms_updates": 2,
-        "sms_sent": 0,
-        "calls_made": 1,
-        "emails_sent": 1,
-        "total_outreach_actions": 2,
-        "labor_hours_replaced": 0.1,
-        "labor_cost_saved": 2.2,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Apr 14, 2025",
-        "week_iso": "2025-04-14",
-        "tms_updates": 0,
-        "sms_sent": 0,
-        "calls_made": 15,
-        "emails_sent": 2,
-        "total_outreach_actions": 17,
-        "labor_hours_replaced": 0.57,
-        "labor_cost_saved": 12.47,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Apr 21, 2025",
-        "week_iso": "2025-04-21",
-        "tms_updates": 6,
-        "sms_sent": 0,
-        "calls_made": 23,
-        "emails_sent": 16,
-        "total_outreach_actions": 39,
-        "labor_hours_replaced": 1.4,
-        "labor_cost_saved": 30.8,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Apr 28, 2025",
-        "week_iso": "2025-04-28",
-        "tms_updates": 25,
-        "sms_sent": 0,
-        "calls_made": 48,
-        "emails_sent": 47,
-        "total_outreach_actions": 95,
-        "labor_hours_replaced": 3.58,
-        "labor_cost_saved": 78.83,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "May 5, 2025",
-        "week_iso": "2025-05-05",
-        "tms_updates": 56,
-        "sms_sent": 0,
-        "calls_made": 167,
-        "emails_sent": 134,
-        "total_outreach_actions": 301,
-        "labor_hours_replaced": 10.97,
-        "labor_cost_saved": 241.27,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "May 12, 2025",
-        "week_iso": "2025-05-12",
-        "tms_updates": 103,
-        "sms_sent": 0,
-        "calls_made": 267,
-        "emails_sent": 239,
-        "total_outreach_actions": 506,
-        "labor_hours_replaced": 18.58,
-        "labor_cost_saved": 408.83,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "May 19, 2025",
-        "week_iso": "2025-05-19",
-        "tms_updates": 23,
-        "sms_sent": 0,
-        "calls_made": 88,
-        "emails_sent": 83,
-        "total_outreach_actions": 171,
-        "labor_hours_replaced": 6.08,
-        "labor_cost_saved": 133.83,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "May 26, 2025",
-        "week_iso": "2025-05-26",
-        "tms_updates": 20,
-        "sms_sent": 0,
-        "calls_made": 49,
-        "emails_sent": 55,
-        "total_outreach_actions": 104,
-        "labor_hours_replaced": 3.8,
-        "labor_cost_saved": 83.6,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jun 2, 2025",
-        "week_iso": "2025-06-02",
-        "tms_updates": 32,
-        "sms_sent": 0,
-        "calls_made": 73,
-        "emails_sent": 67,
-        "total_outreach_actions": 140,
-        "labor_hours_replaced": 5.2,
-        "labor_cost_saved": 114.4,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jun 9, 2025",
-        "week_iso": "2025-06-09",
-        "tms_updates": 15,
-        "sms_sent": 0,
-        "calls_made": 35,
-        "emails_sent": 48,
-        "total_outreach_actions": 83,
-        "labor_hours_replaced": 3.02,
-        "labor_cost_saved": 66.37,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jun 16, 2025",
-        "week_iso": "2025-06-16",
-        "tms_updates": 52,
-        "sms_sent": 0,
-        "calls_made": 131,
-        "emails_sent": 129,
-        "total_outreach_actions": 260,
-        "labor_hours_replaced": 9.53,
-        "labor_cost_saved": 209.73,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jun 23, 2025",
-        "week_iso": "2025-06-23",
-        "tms_updates": 59,
-        "sms_sent": 0,
-        "calls_made": 149,
-        "emails_sent": 160,
-        "total_outreach_actions": 309,
-        "labor_hours_replaced": 11.28,
-        "labor_cost_saved": 248.23,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jun 30, 2025",
-        "week_iso": "2025-06-30",
-        "tms_updates": 60,
-        "sms_sent": 0,
-        "calls_made": 123,
-        "emails_sent": 112,
-        "total_outreach_actions": 235,
-        "labor_hours_replaced": 8.83,
-        "labor_cost_saved": 194.33,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jul 7, 2025",
-        "week_iso": "2025-07-07",
-        "tms_updates": 46,
-        "sms_sent": 0,
-        "calls_made": 134,
-        "emails_sent": 130,
-        "total_outreach_actions": 264,
-        "labor_hours_replaced": 9.57,
-        "labor_cost_saved": 210.47,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jul 14, 2025",
-        "week_iso": "2025-07-14",
-        "tms_updates": 46,
-        "sms_sent": 0,
-        "calls_made": 135,
-        "emails_sent": 143,
-        "total_outreach_actions": 278,
-        "labor_hours_replaced": 10.03,
-        "labor_cost_saved": 220.73,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jul 21, 2025",
-        "week_iso": "2025-07-21",
-        "tms_updates": 50,
-        "sms_sent": 0,
-        "calls_made": 134,
-        "emails_sent": 133,
-        "total_outreach_actions": 267,
-        "labor_hours_replaced": 9.73,
-        "labor_cost_saved": 214.13,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jul 28, 2025",
-        "week_iso": "2025-07-28",
-        "tms_updates": 63,
-        "sms_sent": 0,
-        "calls_made": 155,
-        "emails_sent": 152,
-        "total_outreach_actions": 307,
-        "labor_hours_replaced": 11.28,
-        "labor_cost_saved": 248.23,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Aug 4, 2025",
-        "week_iso": "2025-08-04",
-        "tms_updates": 48,
-        "sms_sent": 0,
-        "calls_made": 141,
-        "emails_sent": 118,
-        "total_outreach_actions": 259,
-        "labor_hours_replaced": 9.43,
-        "labor_cost_saved": 207.53,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Aug 11, 2025",
-        "week_iso": "2025-08-11",
-        "tms_updates": 39,
-        "sms_sent": 0,
-        "calls_made": 148,
-        "emails_sent": 99,
-        "total_outreach_actions": 247,
-        "labor_hours_replaced": 8.88,
-        "labor_cost_saved": 195.43,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Aug 18, 2025",
-        "week_iso": "2025-08-18",
-        "tms_updates": 55,
-        "sms_sent": 0,
-        "calls_made": 145,
-        "emails_sent": 119,
-        "total_outreach_actions": 264,
-        "labor_hours_replaced": 9.72,
-        "labor_cost_saved": 213.77,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Aug 25, 2025",
-        "week_iso": "2025-08-25",
-        "tms_updates": 73,
-        "sms_sent": 0,
-        "calls_made": 191,
-        "emails_sent": 120,
-        "total_outreach_actions": 311,
-        "labor_hours_replaced": 11.58,
-        "labor_cost_saved": 254.83,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Sep 1, 2025",
-        "week_iso": "2025-09-01",
-        "tms_updates": 60,
-        "sms_sent": 0,
-        "calls_made": 155,
-        "emails_sent": 80,
-        "total_outreach_actions": 235,
-        "labor_hours_replaced": 8.83,
-        "labor_cost_saved": 194.33,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Sep 8, 2025",
-        "week_iso": "2025-09-08",
-        "tms_updates": 67,
-        "sms_sent": 0,
-        "calls_made": 180,
-        "emails_sent": 115,
-        "total_outreach_actions": 295,
-        "labor_hours_replaced": 10.95,
-        "labor_cost_saved": 240.9,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Sep 15, 2025",
-        "week_iso": "2025-09-15",
-        "tms_updates": 61,
-        "sms_sent": 0,
-        "calls_made": 172,
-        "emails_sent": 118,
-        "total_outreach_actions": 290,
-        "labor_hours_replaced": 10.68,
-        "labor_cost_saved": 235.03,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Sep 22, 2025",
-        "week_iso": "2025-09-22",
-        "tms_updates": 79,
-        "sms_sent": 0,
-        "calls_made": 211,
-        "emails_sent": 118,
-        "total_outreach_actions": 329,
-        "labor_hours_replaced": 12.28,
-        "labor_cost_saved": 270.23,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Sep 29, 2025",
-        "week_iso": "2025-09-29",
-        "tms_updates": 79,
-        "sms_sent": 0,
-        "calls_made": 205,
-        "emails_sent": 130,
-        "total_outreach_actions": 335,
-        "labor_hours_replaced": 12.48,
-        "labor_cost_saved": 274.63,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Oct 6, 2025",
-        "week_iso": "2025-10-06",
-        "tms_updates": 192,
-        "sms_sent": 21,
-        "calls_made": 266,
-        "emails_sent": 138,
-        "total_outreach_actions": 425,
-        "labor_hours_replaced": 17.37,
-        "labor_cost_saved": 382.07,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Oct 13, 2025",
-        "week_iso": "2025-10-13",
-        "tms_updates": 290,
-        "sms_sent": 261,
-        "calls_made": 394,
-        "emails_sent": 314,
-        "total_outreach_actions": 969,
-        "labor_hours_replaced": 37.13,
-        "labor_cost_saved": 816.93,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Oct 20, 2025",
-        "week_iso": "2025-10-20",
-        "tms_updates": 839,
-        "sms_sent": 786,
-        "calls_made": 1508,
-        "emails_sent": 956,
-        "total_outreach_actions": 3250,
-        "labor_hours_replaced": 122.32,
-        "labor_cost_saved": 2690.97,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Oct 27, 2025",
-        "week_iso": "2025-10-27",
-        "tms_updates": 988,
-        "sms_sent": 252,
-        "calls_made": 2481,
-        "emails_sent": 1317,
-        "total_outreach_actions": 4050,
-        "labor_hours_replaced": 151.47,
-        "labor_cost_saved": 3332.27,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Nov 3, 2025",
-        "week_iso": "2025-11-03",
-        "tms_updates": 711,
-        "sms_sent": 0,
-        "calls_made": 1824,
-        "emails_sent": 929,
-        "total_outreach_actions": 2753,
-        "labor_hours_replaced": 103.62,
-        "labor_cost_saved": 2279.57,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Nov 10, 2025",
-        "week_iso": "2025-11-10",
-        "tms_updates": 6,
-        "sms_sent": 0,
-        "calls_made": 32,
-        "emails_sent": 16,
-        "total_outreach_actions": 48,
-        "labor_hours_replaced": 1.7,
-        "labor_cost_saved": 37.4,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Nov 17, 2025",
-        "week_iso": "2025-11-17",
-        "tms_updates": 43,
-        "sms_sent": 0,
-        "calls_made": 121,
-        "emails_sent": 68,
-        "total_outreach_actions": 189,
-        "labor_hours_replaced": 7.02,
-        "labor_cost_saved": 154.37,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Nov 24, 2025",
-        "week_iso": "2025-11-24",
-        "tms_updates": 758,
-        "sms_sent": 0,
-        "calls_made": 923,
-        "emails_sent": 915,
-        "total_outreach_actions": 1838,
-        "labor_hours_replaced": 73.9,
-        "labor_cost_saved": 1625.8,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Dec 1, 2025",
-        "week_iso": "2025-12-01",
-        "tms_updates": 2472,
-        "sms_sent": 0,
-        "calls_made": 2402,
-        "emails_sent": 2264,
-        "total_outreach_actions": 4666,
-        "labor_hours_replaced": 196.73,
-        "labor_cost_saved": 4328.13,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Dec 8, 2025",
-        "week_iso": "2025-12-08",
-        "tms_updates": 2723,
-        "sms_sent": 0,
-        "calls_made": 2746,
-        "emails_sent": 2280,
-        "total_outreach_actions": 5026,
-        "labor_hours_replaced": 212.92,
-        "labor_cost_saved": 4684.17,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Dec 15, 2025",
-        "week_iso": "2025-12-15",
-        "tms_updates": 3215,
-        "sms_sent": 0,
-        "calls_made": 3015,
-        "emails_sent": 2411,
-        "total_outreach_actions": 5426,
-        "labor_hours_replaced": 234.45,
-        "labor_cost_saved": 5157.9,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Dec 22, 2025",
-        "week_iso": "2025-12-22",
-        "tms_updates": 4255,
-        "sms_sent": 0,
-        "calls_made": 3678,
-        "emails_sent": 2961,
-        "total_outreach_actions": 6639,
-        "labor_hours_replaced": 292.22,
-        "labor_cost_saved": 6428.77,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Dec 29, 2025",
-        "week_iso": "2025-12-29",
-        "tms_updates": 4831,
-        "sms_sent": 0,
-        "calls_made": 4336,
-        "emails_sent": 3986,
-        "total_outreach_actions": 8322,
-        "labor_hours_replaced": 357.92,
-        "labor_cost_saved": 7874.17,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jan 5, 2026",
-        "week_iso": "2026-01-05",
-        "tms_updates": 5703,
-        "sms_sent": 0,
-        "calls_made": 5430,
-        "emails_sent": 4675,
-        "total_outreach_actions": 10105,
-        "labor_hours_replaced": 431.88,
-        "labor_cost_saved": 9501.43,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jan 12, 2026",
-        "week_iso": "2026-01-12",
-        "tms_updates": 5355,
-        "sms_sent": 5,
-        "calls_made": 4581,
-        "emails_sent": 3765,
-        "total_outreach_actions": 8351,
-        "labor_hours_replaced": 367.62,
-        "labor_cost_saved": 8087.57,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jan 19, 2026",
-        "week_iso": "2026-01-19",
-        "tms_updates": 4974,
-        "sms_sent": 4,
-        "calls_made": 3330,
-        "emails_sent": 2945,
-        "total_outreach_actions": 6279,
-        "labor_hours_replaced": 292.2,
-        "labor_cost_saved": 6428.4,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Jan 26, 2026",
-        "week_iso": "2026-01-26",
-        "tms_updates": 6153,
-        "sms_sent": 1379,
-        "calls_made": 3902,
-        "emails_sent": 3204,
-        "total_outreach_actions": 8485,
-        "labor_hours_replaced": 385.38,
-        "labor_cost_saved": 8478.43,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Feb 2, 2026",
-        "week_iso": "2026-02-02",
-        "tms_updates": 6078,
-        "sms_sent": 1652,
-        "calls_made": 4044,
-        "emails_sent": 3778,
-        "total_outreach_actions": 9474,
-        "labor_hours_replaced": 417.1,
-        "labor_cost_saved": 9176.2,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Feb 9, 2026",
-        "week_iso": "2026-02-09",
-        "tms_updates": 3922,
-        "sms_sent": 1197,
-        "calls_made": 2688,
-        "emails_sent": 2876,
-        "total_outreach_actions": 6761,
-        "labor_hours_replaced": 290.73,
-        "labor_cost_saved": 6396.13,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Feb 16, 2026",
-        "week_iso": "2026-02-16",
-        "tms_updates": 4069,
-        "sms_sent": 1089,
-        "calls_made": 2781,
-        "emails_sent": 2590,
-        "total_outreach_actions": 6460,
-        "labor_hours_replaced": 283.15,
-        "labor_cost_saved": 6229.3,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Feb 23, 2026",
-        "week_iso": "2026-02-23",
-        "tms_updates": 4906,
-        "sms_sent": 1463,
-        "calls_made": 3473,
-        "emails_sent": 3557,
-        "total_outreach_actions": 8493,
-        "labor_hours_replaced": 364.87,
-        "labor_cost_saved": 8027.07,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Mar 2, 2026",
-        "week_iso": "2026-03-02",
-        "tms_updates": 4783,
-        "sms_sent": 1446,
-        "calls_made": 3247,
-        "emails_sent": 3400,
-        "total_outreach_actions": 8093,
-        "labor_hours_replaced": 349.48,
-        "labor_cost_saved": 7688.63,
-        "actual_call_minutes_total": null
-      },
-      {
-        "week": "Mar 9, 2026",
-        "week_iso": "2026-03-09",
-        "tms_updates": 58,
-        "sms_sent": 25,
-        "calls_made": 10,
-        "emails_sent": 7,
-        "total_outreach_actions": 42,
-        "labor_hours_replaced": 2.37,
-        "labor_cost_saved": 52.07,
-        "actual_call_minutes_total": null
-      }
-    ],
-    "tier3_weekly_impact": [
-      {
-        "week": "Dec 29, 2025",
-        "week_iso": "2025-12-29",
-        "loads_actioned": 466,
-        "transit_updates_sent": 285,
-        "stop_updates_sent": 1581,
-        "escalations": 6
-      },
-      {
-        "week": "Jan 5, 2026",
-        "week_iso": "2026-01-05",
-        "loads_actioned": 1753,
-        "transit_updates_sent": 734,
-        "stop_updates_sent": 5136,
-        "escalations": 9
-      },
-      {
-        "week": "Jan 12, 2026",
-        "week_iso": "2026-01-12",
-        "loads_actioned": 1406,
-        "transit_updates_sent": 634,
-        "stop_updates_sent": 4744,
-        "escalations": 8
-      },
-      {
-        "week": "Jan 19, 2026",
-        "week_iso": "2026-01-19",
-        "loads_actioned": 1186,
-        "transit_updates_sent": 757,
-        "stop_updates_sent": 4203,
-        "escalations": 9
-      },
-      {
-        "week": "Jan 26, 2026",
-        "week_iso": "2026-01-26",
-        "loads_actioned": 1313,
-        "transit_updates_sent": 1101,
-        "stop_updates_sent": 4695,
-        "escalations": 16
       }
     ]
   },
@@ -1164,129 +200,43 @@
       {
         "week": "Dec 29, 2025",
         "week_iso": "2025-12-29",
-        "bids_collected": 350,
         "bids_from_calls": 174,
         "bids_from_emails": 176,
-        "loads_with_bids": 185,
-        "loads_booked": 56,
-        "bid_to_book_rate_pct": 30.3,
-        "rate_savings_to_max": 802.85,
-        "labor_hours_replaced": 14.6,
-        "labor_cost_saved": 321.2,
-        "actual_call_minutes_total": null
+        "bids_collected": 350,
+        "loads_booked": 56
       },
       {
         "week": "Jan 5, 2026",
         "week_iso": "2026-01-05",
-        "bids_collected": 1543,
         "bids_from_calls": 779,
         "bids_from_emails": 764,
-        "loads_with_bids": 737,
-        "loads_booked": 252,
-        "bid_to_book_rate_pct": 34.2,
-        "rate_savings_to_max": 4592.14,
-        "labor_hours_replaced": 64.17,
-        "labor_cost_saved": 1411.67,
-        "actual_call_minutes_total": null
+        "bids_collected": 1543,
+        "loads_booked": 252
       },
       {
         "week": "Jan 12, 2026",
         "week_iso": "2026-01-12",
-        "bids_collected": 1228,
         "bids_from_calls": 595,
         "bids_from_emails": 633,
-        "loads_with_bids": 532,
-        "loads_booked": 193,
-        "bid_to_book_rate_pct": 36.3,
-        "rate_savings_to_max": 2202,
-        "labor_hours_replaced": 51.48,
-        "labor_cost_saved": 1132.63,
-        "actual_call_minutes_total": null
+        "bids_collected": 1228,
+        "loads_booked": 193
       },
       {
         "week": "Jan 19, 2026",
         "week_iso": "2026-01-19",
-        "bids_collected": 1148,
         "bids_from_calls": 531,
         "bids_from_emails": 617,
-        "loads_with_bids": 550,
-        "loads_booked": 191,
-        "bid_to_book_rate_pct": 34.7,
-        "rate_savings_to_max": 2970,
-        "labor_hours_replaced": 48.55,
-        "labor_cost_saved": 1068.1,
-        "actual_call_minutes_total": null
+        "bids_collected": 1148,
+        "loads_booked": 191
       },
       {
         "week": "Jan 26, 2026",
         "week_iso": "2026-01-26",
-        "bids_collected": 1541,
         "bids_from_calls": 602,
         "bids_from_emails": 939,
-        "loads_with_bids": 765,
-        "loads_booked": 265,
-        "bid_to_book_rate_pct": 34.6,
-        "rate_savings_to_max": 6801.85,
-        "labor_hours_replaced": 67.02,
-        "labor_cost_saved": 1474.37,
-        "actual_call_minutes_total": null
+        "bids_collected": 1541,
+        "loads_booked": 265
       }
-    ],
-    "tier2_dow_scorecard": {
-      "Total Calls T4W": {
-        "MON": 422.5,
-        "TUE": 405,
-        "WED": 409.5,
-        "THU": 428.5,
-        "FRI": 390.8,
-        "SAT": 76.5,
-        "SUN": 32.3
-      },
-      "Total Bids T4W": {
-        "MON": 83.8,
-        "TUE": 80,
-        "WED": 80.5,
-        "THU": 78,
-        "FRI": 76.8,
-        "SAT": 13,
-        "SUN": 6.5
-      },
-      "Loads Booked T4W": {
-        "MON": 29.5,
-        "TUE": 32.5,
-        "WED": 30.5,
-        "THU": 27,
-        "FRI": 28.3,
-        "SAT": 3.5,
-        "SUN": 2.8
-      },
-      "Booked Margin T4W": {
-        "MON": 6286.67,
-        "TUE": 6865.45,
-        "WED": 6399.8,
-        "THU": 5058.71,
-        "FRI": 7388.75,
-        "SAT": 713.39,
-        "SUN": 328.63
-      },
-      "Margin Per Load T4W": {
-        "MON": 215.13,
-        "TUE": 216.21,
-        "WED": 205.06,
-        "THU": 186.05,
-        "FRI": 258.03,
-        "SAT": 198.83,
-        "SUN": 53.82
-      },
-      "Avg Margin % T4W": {
-        "MON": 10.3,
-        "TUE": 10.2,
-        "WED": 10.8,
-        "THU": 9.3,
-        "FRI": 12,
-        "SAT": 9.9,
-        "SUN": 3.9
-      }
-    }
+    ]
   }
 }
