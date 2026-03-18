@@ -1,11 +1,8 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useMemo, useCallback } from "react"
 import {
-  LayoutGrid,
-  Users,
   Phone,
-  Settings,
   Download,
   RefreshCw,
   AlertCircle,
@@ -24,238 +21,27 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 
-import dashboardData from "@/lib/dashboard-data.json"
+import {
+  fetchDashboardData,
+  type DashboardData,
+  type WorkflowCard as WorkflowCardData,
+  type TrendResult,
+} from "@/lib/dashboard-data-service"
 
 // ---------------------------------------------------------------------------
-// Constants
+// Constants (presentation only)
 // ---------------------------------------------------------------------------
 const WORKFLOW_COLORS: Record<string, string> = {
-  dc: "#1D9E75",
-  tt: "#378ADD",
-  cs: "#7F77DD",
-  lb: "#888780",
-  as: "#B4B2A9",
-  qt: "#A89F91",
+  dc: "#1D9E75", tt: "#378ADD", cs: "#7F77DD",
+  lb: "#888780", as: "#B4B2A9", qt: "#A89F91",
 }
 
 const WORKFLOW_LABELS: Record<string, string> = {
-  dc: "Document Collection",
-  tt: "Track & Trace",
-  cs: "Carrier Selection",
-  lb: "Load Building",
-  as: "Scheduling",
-  qt: "Quoting",
+  dc: "Document Collection", tt: "Track & Trace", cs: "Carrier Selection",
+  lb: "Load Building", as: "Scheduling", qt: "Quoting",
 }
 
-// Time assumptions per spec (read-only)
-const ASSUMPTIONS = {
-  emailMinutes: dashboardData.parameters.minutes_per_email,
-  textMinutes: dashboardData.parameters.minutes_per_message,
-  tmsMinutes: dashboardData.parameters.minutes_per_tms_update,
-  callMinutes: dashboardData.parameters.minutes_per_call,
-}
-
-// ---------------------------------------------------------------------------
-// Static data references
-// ---------------------------------------------------------------------------
-const TT_WEEKS = dashboardData.track_and_trace.tier2_weekly_2026.filter(
-  (w) => w.week_iso !== "2026-03-09",
-)
-const TT_TIER3 = dashboardData.track_and_trace.tier3_weekly_impact
-const DC_OUTREACH = dashboardData.document_collection.tier2_weekly_outreach
-const DC_POD_ATTR = dashboardData.document_collection.tier2_pod_attribution_weekly
-const CS_WEEKS = dashboardData.carrier_selection.tier2_weekly
-
-const BROKERAGE = dashboardData.meta.brokerage_display_name
-const PERIOD = dashboardData.tier1_program_value.summary.period
-const LAST_UPDATED = dashboardData.meta.generated_date
-
-// ---------------------------------------------------------------------------
-// Data types
-// ---------------------------------------------------------------------------
-interface TrendResult {
-  direction: "up" | "down" | "flat"
-  pct: number
-}
-
-interface WorkflowCardData {
-  name: string
-  status: "Active" | "Not Live"
-  activity: { calls: number; emails: number; texts: number; tmsUpdates: number }
-  outcomes: { label: string; value: number; format?: "pct" }[]
-  hoursSaved: number
-  trend: TrendResult | null
-  color: string
-}
-
-// ---------------------------------------------------------------------------
-// Data computation
-// ---------------------------------------------------------------------------
-function computeTrend(weeklyHours: number[]): TrendResult | null {
-  if (weeklyHours.length < 8) return null
-  const last4 = weeklyHours.slice(-4)
-  const prior4 = weeklyHours.slice(-8, -4)
-  const avgLast = last4.reduce((s, v) => s + v, 0) / 4
-  const avgPrior = prior4.reduce((s, v) => s + v, 0) / 4
-  if (avgPrior === 0) return null
-  const pct = ((avgLast - avgPrior) / avgPrior) * 100
-  if (Math.abs(pct) < 1) return { direction: "flat", pct: 0 }
-  return { direction: pct > 0 ? "up" : "down", pct: Math.abs(Math.round(pct)) }
-}
-
-function computeDashboardData() {
-  const p = ASSUMPTIONS
-
-  const hrs = (calls: number, emails: number, texts: number, tms: number) =>
-    (calls * p.callMinutes + emails * p.emailMinutes + texts * p.textMinutes + tms * p.tmsMinutes) / 60
-
-  const interactions = (calls: number, emails: number, texts: number, tms: number) =>
-    calls + emails + texts + tms
-
-  // Per-workflow activity totals
-  const ttActivity = {
-    calls: TT_WEEKS.reduce((s, w) => s + w.calls_made, 0),
-    emails: TT_WEEKS.reduce((s, w) => s + w.emails_sent, 0),
-    texts: TT_WEEKS.reduce((s, w) => s + w.sms_sent, 0),
-    tmsUpdates: TT_WEEKS.reduce((s, w) => s + w.tms_updates, 0),
-  }
-  const dcActivity = {
-    calls: DC_OUTREACH.reduce((s, w) => s + w.calls_placed, 0),
-    emails: DC_OUTREACH.reduce((s, w) => s + w.emails_sent, 0),
-    texts: 0, tmsUpdates: 0,
-  }
-  const csActivity = {
-    calls: CS_WEEKS.reduce((s, w) => s + w.bids_from_calls, 0),
-    emails: CS_WEEKS.reduce((s, w) => s + w.bids_from_emails, 0),
-    texts: 0, tmsUpdates: 0,
-  }
-
-  // Hours per workflow
-  const ttHours = hrs(ttActivity.calls, ttActivity.emails, ttActivity.texts, ttActivity.tmsUpdates)
-  const dcHours = hrs(dcActivity.calls, dcActivity.emails, 0, 0)
-  const csHours = hrs(csActivity.calls, csActivity.emails, 0, 0)
-  const totalHours = ttHours + dcHours + csHours
-
-  // Weekly stacked data (hours + interactions per workflow)
-  const weeklyMap = new Map<string, {
-    week: string; weekIso: string
-    tt: number; dc: number; cs: number
-    ttI: number; dcI: number; csI: number
-  }>()
-
-  const getOrCreate = (weekIso: string, weekLabel: string) => {
-    if (!weeklyMap.has(weekIso)) {
-      weeklyMap.set(weekIso, {
-        week: weekLabel.replace(", 2026", "").replace(", 2025", ""),
-        weekIso, tt: 0, dc: 0, cs: 0, ttI: 0, dcI: 0, csI: 0,
-      })
-    }
-    return weeklyMap.get(weekIso)!
-  }
-
-  for (const w of TT_WEEKS) {
-    const e = getOrCreate(w.week_iso, w.week)
-    e.tt = hrs(w.calls_made, w.emails_sent, w.sms_sent, w.tms_updates)
-    e.ttI = interactions(w.calls_made, w.emails_sent, w.sms_sent, w.tms_updates)
-  }
-  for (const w of DC_OUTREACH) {
-    const e = getOrCreate(w.week_iso, w.week)
-    e.dc = hrs(w.calls_placed, w.emails_sent, 0, 0)
-    e.dcI = interactions(w.calls_placed, w.emails_sent, 0, 0)
-  }
-  for (const w of CS_WEEKS) {
-    const e = getOrCreate(w.week_iso, w.week)
-    e.cs = hrs(w.bids_from_calls, w.bids_from_emails, 0, 0)
-    e.csI = interactions(w.bids_from_calls, w.bids_from_emails, 0, 0)
-  }
-
-  const weeklyStacked = Array.from(weeklyMap.values())
-    .sort((a, b) => a.weekIso.localeCompare(b.weekIso))
-    .map((w) => ({
-      week: w.week,
-      dc: Math.round(w.dc), tt: Math.round(w.tt), cs: Math.round(w.cs),
-      total: Math.round(w.dc + w.tt + w.cs),
-      interactions: w.dcI + w.ttI + w.csI,
-    }))
-
-  const weeksCount = weeklyStacked.length
-  const avgHoursPerWeek = weeksCount > 0 ? totalHours / weeksCount : 0
-
-  // Detect partial first week
-  let firstWeekPartial = false
-  if (weeklyStacked.length > 1) {
-    const restAvg = weeklyStacked.slice(1).reduce((s, w) => s + w.total, 0) / (weeklyStacked.length - 1)
-    firstWeekPartial = weeklyStacked[0].total < restAvg * 0.3
-  }
-
-  // Per-workflow weekly hours arrays (for trend computation)
-  const ttWeeklyHrs = TT_WEEKS.map((w) => hrs(w.calls_made, w.emails_sent, w.sms_sent, w.tms_updates))
-  const dcWeeklyHrs = DC_OUTREACH.map((w) => hrs(w.calls_placed, w.emails_sent, 0, 0))
-  const csWeeklyHrs = CS_WEEKS.map((w) => hrs(w.bids_from_calls, w.bids_from_emails, 0, 0))
-
-  // Workflow outcomes
-  const ttLoadsActioned = TT_TIER3.reduce((s, w) => s + w.loads_actioned, 0)
-  const dcPods = DC_POD_ATTR.reduce((s, w) => s + w.pods_augie, 0)
-  const dcWithin3 = DC_POD_ATTR.reduce(
-    (s, w) => s + w.time_buckets.within_1_day + w.time_buckets.within_2_days + w.time_buckets.within_3_days, 0,
-  )
-  const dcCollectionRate = dcPods > 0 ? (dcWithin3 / dcPods) * 100 : 0
-  const csBids = CS_WEEKS.reduce((s, w) => s + w.bids_collected, 0)
-  const csBooked = CS_WEEKS.reduce((s, w) => s + w.loads_booked, 0)
-
-  // Assemble workflow card data
-  const workflows: WorkflowCardData[] = [
-    {
-      name: "Document Collection", status: "Active", color: WORKFLOW_COLORS.dc,
-      activity: dcActivity,
-      outcomes: [
-        { label: "PODs Collected", value: dcPods },
-        { label: "Collection Rate (\u22643 days)", value: dcCollectionRate, format: "pct" },
-      ],
-      hoursSaved: dcHours, trend: computeTrend(dcWeeklyHrs),
-    },
-    {
-      name: "Track & Trace", status: "Active", color: WORKFLOW_COLORS.tt,
-      activity: ttActivity,
-      outcomes: [
-        { label: "TMS Updates Posted", value: ttActivity.tmsUpdates },
-        { label: "Loads Actioned", value: ttLoadsActioned },
-      ],
-      hoursSaved: ttHours, trend: computeTrend(ttWeeklyHrs),
-    },
-    {
-      name: "Carrier Selection", status: "Active", color: WORKFLOW_COLORS.cs,
-      activity: csActivity,
-      outcomes: [
-        { label: "Bids Collected", value: csBids },
-        { label: "Loads Booked", value: csBooked },
-      ],
-      hoursSaved: csHours, trend: computeTrend(csWeeklyHrs),
-    },
-    {
-      name: "Load Building", status: "Not Live", color: WORKFLOW_COLORS.lb,
-      activity: { calls: 0, emails: 0, texts: 0, tmsUpdates: 0 },
-      outcomes: [{ label: "Loads Built", value: 0 }, { label: "Tender Acceptance Rate", value: 0, format: "pct" }],
-      hoursSaved: 0, trend: null,
-    },
-    {
-      name: "Appointment Scheduling", status: "Not Live", color: WORKFLOW_COLORS.as,
-      activity: { calls: 0, emails: 0, texts: 0, tmsUpdates: 0 },
-      outcomes: [{ label: "Appts Scheduled", value: 0 }, { label: "On-Time Rate", value: 0, format: "pct" }],
-      hoursSaved: 0, trend: null,
-    },
-    {
-      name: "Quoting", status: "Not Live", color: WORKFLOW_COLORS.qt,
-      activity: { calls: 0, emails: 0, texts: 0, tmsUpdates: 0 },
-      outcomes: [{ label: "Quotes Generated", value: 0 }, { label: "Quote-to-Book Rate", value: 0, format: "pct" }],
-      hoursSaved: 0, trend: null,
-    },
-  ]
-
-  return { totalHours, avgHoursPerWeek, weeksCount, weeklyStacked, firstWeekPartial, workflows }
-}
-
-const DASH = computeDashboardData()
+const COL_GRID = "180px 80px 120px 120px 80px 80px 80px 80px 80px 120px"
 
 // ---------------------------------------------------------------------------
 // Utility
@@ -270,9 +56,9 @@ const formatCompact = (value: number): string =>
 // Shared UI Components
 // ---------------------------------------------------------------------------
 
-function AugmentIconMark({ className = "" }: { className?: string }) {
+function AugmentIconMark() {
   return (
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" className={className}>
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
       <mask id="iconMask" style={{ maskType: "luminance" }} maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
         <path d="M32 16C32 7.16344 24.8366 0 16 0C7.16344 0 0 7.16344 0 16C0 24.8366 7.16344 32 16 32C24.8366 32 32 24.8366 32 16Z" fill="white" />
       </mask>
@@ -284,9 +70,9 @@ function AugmentIconMark({ className = "" }: { className?: string }) {
   )
 }
 
-function LineChartIcon({ className = "" }: { className?: string }) {
+function LineChartIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18" />
       <circle cx="7" cy="17" r="2" fill="currentColor" />
       <circle cx="11" cy="12" r="2" fill="currentColor" />
@@ -302,27 +88,13 @@ function Sidebar() {
     <aside className="fixed left-0 top-0 h-full w-12 bg-[#0D2318] flex flex-col items-center py-3 z-50 max-md:hidden">
       <div className="flex items-center justify-center mb-4"><AugmentIconMark /></div>
       <div className="flex flex-col items-center gap-1 flex-1">
-        <button className="p-2 rounded-lg transition-colors bg-[#1A3D28] text-white"><LineChartIcon /></button>
-        <button className="p-2 rounded-lg transition-colors text-[#6B7280] hover:bg-[#1A3D28] hover:text-white/90"><Users size={18} /></button>
-        <button className="p-2 rounded-lg transition-colors text-[#6B7280] hover:bg-[#1A3D28] hover:text-white/90"><Phone size={18} /></button>
+        <button className="p-2 rounded-lg bg-[#1A3D28] text-white"><LineChartIcon /></button>
+        <button className="p-2 rounded-lg text-[#6B7280] hover:bg-[#1A3D28] hover:text-white/90"><Phone size={18} /></button>
       </div>
-      <div className="mt-auto flex flex-col items-center gap-2">
-        <button className="p-2 text-[#6B7280] hover:bg-[#1A3D28] hover:text-white/90 rounded-lg transition-colors"><Settings size={18} /></button>
+      <div className="mt-auto">
         <div className="w-7 h-7 rounded-full bg-[#16A34A] text-white text-xs font-medium flex items-center justify-center">AB</div>
       </div>
     </aside>
-  )
-}
-
-function SkeletonCard({ className = "" }: { className?: string }) {
-  return (
-    <div className={`animate-pulse bg-white border border-[#E5E7EB] rounded-lg ${className}`}>
-      <div className="p-5 space-y-3">
-        <div className="h-4 bg-[#F3F4F6] rounded w-1/3"></div>
-        <div className="h-8 bg-[#F3F4F6] rounded w-2/3"></div>
-        <div className="h-3 bg-[#F3F4F6] rounded w-1/2"></div>
-      </div>
-    </div>
   )
 }
 
@@ -396,8 +168,8 @@ function StackedBarTooltip({ active, payload, label }: { active?: boolean; paylo
 // ---------------------------------------------------------------------------
 // Custom X-Axis Tick
 // ---------------------------------------------------------------------------
-function CustomXTick({ x, y, payload, index }: { x: number; y: number; payload: { value: string }; index: number }) {
-  const isPartial = index === 0 && DASH.firstWeekPartial
+function CustomXTick({ x, y, payload, firstWeekPartial }: { x: number; y: number; payload: { value: string }; index: number; firstWeekPartial: boolean }) {
+  const isPartial = payload.value === WORKFLOW_LABELS.dc ? false : firstWeekPartial
   return (
     <g transform={`translate(${x},${y})`}>
       <text x={0} y={0} dy={12} textAnchor="middle" fill="#9CA3AF" fontSize={10}>{payload.value}</text>
@@ -411,25 +183,28 @@ function CustomXTick({ x, y, payload, index }: { x: number; y: number; payload: 
 // ---------------------------------------------------------------------------
 // Section 3 — Total Time Saved
 // ---------------------------------------------------------------------------
-function TimeSavedSection() {
-  const data = DASH
+function TimeSavedSection({ data }: { data: DashboardData }) {
   const avgRounded = Math.round(data.avgHoursPerWeek)
+
+  // Bind firstWeekPartial into the tick renderer
+  const renderTick = useCallback(
+    (props: { x: number; y: number; payload: { value: string }; index: number }) => (
+      <CustomXTick {...props} firstWeekPartial={data.firstWeekPartial} />
+    ),
+    [data.firstWeekPartial],
+  )
 
   return (
     <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
       <div className="space-y-1 mb-5">
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-bold text-[#111827]">
-            {formatNumber(Math.round(data.totalHours))}
-          </span>
+          <span className="text-4xl font-bold text-[#111827]">{formatNumber(Math.round(data.totalHours))}</span>
           <span className="text-lg text-[#9CA3AF]">hours saved</span>
         </div>
-        <p className="text-sm text-[#6B7280]">
-          {PERIOD} · {avgRounded} hrs/week avg
-        </p>
+        <p className="text-sm text-[#6B7280]">{data.period} · {avgRounded} hrs/week avg</p>
       </div>
 
-      {/* Custom legend above chart */}
+      {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 mb-3">
         {(["dc", "tt", "cs", "lb", "as", "qt"] as const).map((key) => (
           <div key={key} className="flex items-center gap-1.5 text-xs text-[#6B7280]">
@@ -447,9 +222,9 @@ function TimeSavedSection() {
               dataKey="week"
               axisLine={false}
               tickLine={false}
-              tick={CustomXTick as unknown as React.ComponentType}
+              tick={renderTick as unknown as React.ComponentType}
               interval={0}
-              height={DASH.firstWeekPartial ? 40 : 28}
+              height={data.firstWeekPartial ? 40 : 28}
             />
             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#9CA3AF" }} width={40} />
             <Tooltip content={<StackedBarTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
@@ -479,10 +254,8 @@ function TimeSavedSection() {
 }
 
 // ---------------------------------------------------------------------------
-// Section 4 — By Workflow (fixed 10-column grid, single row per card)
+// Section 4 — By Workflow (fixed 10-column grid)
 // ---------------------------------------------------------------------------
-const COL_GRID = "180px 80px 120px 120px 80px 80px 80px 80px 80px 120px"
-
 function TrendCell({ trend }: { trend: TrendResult | null }) {
   if (!trend) return <span className="text-sm text-[#D1D5DB]">{"\u2014"}</span>
   if (trend.direction === "flat") return <span className="text-sm text-[#9CA3AF]">{"\u2192"} 0%</span>
@@ -503,34 +276,24 @@ function WorkflowRow({ workflow }: { workflow: WorkflowCardData }) {
       className={`grid items-center rounded-lg border border-[#E5E7EB] ${isNotLive ? "bg-[#FAFAFA]" : "bg-white"}`}
       style={{ gridTemplateColumns: COL_GRID, minWidth: "1020px" }}
     >
-      {/* Col 1 — Name + dot */}
       <div className="px-3 py-3 flex items-center gap-2 overflow-hidden">
         <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: workflow.color }} />
         <span className="text-sm font-semibold text-[#111827] truncate">{workflow.name}</span>
       </div>
-      {/* Col 2 — Status */}
       <div className="px-2 py-3"><StatusBadge status={workflow.status} /></div>
-      {/* Col 3 — Outcome 1 */}
       <div className="px-3 py-2 text-right border-l border-[#E5E7EB]">
         <p className="text-[10px] text-[#9CA3AF] leading-tight mb-0.5 truncate">{workflow.outcomes[0].label}</p>
         <p className="text-sm font-semibold text-[#111827]"><Val value={workflow.outcomes[0].value} format={workflow.outcomes[0].format} /></p>
       </div>
-      {/* Col 4 — Outcome 2 */}
       <div className="px-3 py-2 text-right">
         <p className="text-[10px] text-[#9CA3AF] leading-tight mb-0.5 truncate">{workflow.outcomes[1].label}</p>
         <p className="text-sm font-semibold text-[#111827]"><Val value={workflow.outcomes[1].value} format={workflow.outcomes[1].format} /></p>
       </div>
-      {/* Col 5 — Calls */}
       <div className="px-3 py-3 text-right text-sm font-semibold text-[#111827] border-l border-[#E5E7EB]"><Val value={workflow.activity.calls} /></div>
-      {/* Col 6 — Emails */}
       <div className="px-3 py-3 text-right text-sm font-semibold text-[#111827]"><Val value={workflow.activity.emails} /></div>
-      {/* Col 7 — Texts */}
       <div className="px-3 py-3 text-right text-sm font-semibold text-[#111827]"><Val value={workflow.activity.texts} /></div>
-      {/* Col 8 — TMS */}
       <div className="px-3 py-3 text-right text-sm font-semibold text-[#111827]"><Val value={workflow.activity.tmsUpdates} /></div>
-      {/* Col 9 — Trend */}
       <div className="px-3 py-3 text-center border-l border-[#E5E7EB]"><TrendCell trend={workflow.trend} /></div>
-      {/* Col 10 — Hours Saved */}
       <div className="px-3 py-3 text-right">
         {workflow.hoursSaved > 0 ? (
           <span className="text-[20px] font-bold text-[#16A34A] whitespace-nowrap leading-tight">
@@ -544,7 +307,7 @@ function WorkflowRow({ workflow }: { workflow: WorkflowCardData }) {
   )
 }
 
-function ByWorkflowSection() {
+function ByWorkflowSection({ workflows }: { workflows: WorkflowCardData[] }) {
   return (
     <div className="space-y-2">
       <h2 className="text-sm font-semibold text-[#6B7280] uppercase tracking-wide">By Workflow</h2>
@@ -572,32 +335,11 @@ function ByWorkflowSection() {
           </div>
           {/* Cards */}
           <div className="space-y-2">
-            {DASH.workflows.map((wf) => (
-              <WorkflowRow key={wf.name} workflow={wf} />
+            {workflows.map((wf) => (
+              <WorkflowRow key={wf.key} workflow={wf} />
             ))}
           </div>
         </div>
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Access Gate (kept for future use)
-// ---------------------------------------------------------------------------
-function AccessGate() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
-      <div className="max-w-md text-center px-6">
-        <div className="w-16 h-16 bg-white border border-[#E5E7EB] rounded-lg mx-auto mb-6 flex items-center justify-center">
-          <LayoutGrid className="text-[#111827]" size={28} />
-        </div>
-        <h1 className="text-2xl font-semibold text-[#111827] mb-3">Manager access required</h1>
-        <p className="text-[#6B7280] mb-8 leading-relaxed">
-          The Value Creation Dashboard is available to team managers and executives. If you believe
-          you should have access, please contact your account administrator or your Augment account team.
-        </p>
-        <Button className="bg-[#16A34A] hover:bg-[#15803D] text-white rounded-md px-6">Contact account team</Button>
       </div>
     </div>
   )
@@ -609,9 +351,9 @@ function AccessGate() {
 export default function ValueCreationDashboard() {
   const [dateFrom, setDateFrom] = useState("2026-02-09")
   const [dateTo, setDateTo] = useState("2026-03-08")
-  const [isLoading, setIsLoading] = useState(false)
   const [hasError, setHasError] = useState(false)
-  const [showAccessGate] = useState(false)
+
+  const dashData = useMemo(() => fetchDashboardData(dateFrom, dateTo), [dateFrom, dateTo])
 
   const handleExport = useCallback(() => {
     toast.success("Export ready \u2014 file downloading.", {
@@ -619,34 +361,20 @@ export default function ValueCreationDashboard() {
     })
   }, [])
 
-  const handleRetry = useCallback(() => {
-    setIsLoading(true)
-    setHasError(false)
-    setTimeout(() => setIsLoading(false), 1500)
-  }, [])
-
-  if (showAccessGate) return <AccessGate />
-
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       <Sidebar />
 
       <main className="md:ml-12 p-6 lg:p-8 max-w-[1400px] mx-auto">
-        {isLoading ? (
-          <div className="space-y-6">
-            <SkeletonCard className="h-48" />
-            <SkeletonCard className="h-64" />
-            <div className="grid grid-cols-2 gap-4"><SkeletonCard /><SkeletonCard /></div>
-          </div>
-        ) : hasError ? (
-          <ErrorState onRetry={handleRetry} />
+        {hasError ? (
+          <ErrorState onRetry={() => setHasError(false)} />
         ) : (
           <div className="space-y-6">
             {/* Section 1 — Header */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h1 className="text-xl font-semibold text-[#111827]">Value Creation Dashboard</h1>
-                <p className="text-sm text-[#6B7280] mt-0.5">{BROKERAGE}</p>
+                <p className="text-sm text-[#6B7280] mt-0.5">{dashData.brokerage}</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2 text-sm">
@@ -668,7 +396,7 @@ export default function ValueCreationDashboard() {
                 <Button variant="outline" onClick={handleExport} className="rounded-md border-[#E5E7EB] text-[#111827]">
                   <Download size={16} className="mr-2" />Export CSV
                 </Button>
-                <span className="text-xs text-[#9CA3AF]">Last updated: {LAST_UPDATED}</span>
+                <span className="text-xs text-[#9CA3AF]">Last updated: {dashData.lastUpdated}</span>
               </div>
             </div>
 
@@ -676,10 +404,10 @@ export default function ValueCreationDashboard() {
             <AssumptionsBar />
 
             {/* Section 3 — Total Time Saved */}
-            <TimeSavedSection />
+            <TimeSavedSection data={dashData} />
 
             {/* Section 4 — By Workflow */}
-            <ByWorkflowSection />
+            <ByWorkflowSection workflows={dashData.workflows} />
           </div>
         )}
       </main>
