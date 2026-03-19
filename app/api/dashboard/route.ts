@@ -164,9 +164,11 @@ export async function GET(request: Request) {
         SUM(LOADS_BUILT) AS LOADS_BUILT
       FROM MART_WORKFLOW_LOADS_DAILY
       WHERE BROKERAGE_KEY = ?
+        AND REPORTING_DAY >= ?
+        AND REPORTING_DAY <= ?
       GROUP BY REPORTING_WEEK
       ORDER BY REPORTING_WEEK`,
-      [brokerage],
+      [brokerage, from, to],
     )
 
     // -----------------------------------------------------------------------
@@ -253,7 +255,7 @@ export async function GET(request: Request) {
     }
 
     // -----------------------------------------------------------------------
-    // Outcome totals from loads table (all time)
+    // Outcome totals from loads table (date-filtered)
     // -----------------------------------------------------------------------
     const loadsTotals = loadsRows.reduce(
       (acc, r) => ({
