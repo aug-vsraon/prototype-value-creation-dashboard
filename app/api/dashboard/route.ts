@@ -18,13 +18,35 @@ const WORKFLOW_KEY_MAP: Record<string, string> = {
   track_and_trace: "tt",
   pod_collection: "dc",
   carrier_selection: "cs",
+  load_building: "lb",
+  scheduling: "as",
 }
 
 const WORKFLOW_COLORS: Record<string, string> = {
   dc: "#1D9E75",
   tt: "#378ADD",
   cs: "#7F77DD",
+  lb: "#E8913A",
+  as: "#E05D9E",
 }
+
+const WORKFLOW_NAMES: Record<string, string> = {
+  dc: "Document Collection",
+  tt: "Track & Trace",
+  cs: "Carrier Selection",
+  lb: "Load Building",
+  as: "Appointment Scheduling",
+}
+
+const WORKFLOW_OUTCOMES: Record<string, { label: string; format?: "pct" }[]> = {
+  dc: [{ label: "PODs Collected" }, { label: "Collection Rate (\u22643 days)", format: "pct" }],
+  tt: [{ label: "TMS Updates Posted" }, { label: "Loads Actioned" }],
+  cs: [{ label: "Bids Collected" }, { label: "Loads Booked" }],
+  lb: [{ label: "Loads Built" }, { label: "Tender Acceptance Rate", format: "pct" }],
+  as: [{ label: "Appts Scheduled" }, { label: "On-Time Rate", format: "pct" }],
+}
+
+const ALL_WORKFLOW_KEYS = ["dc", "tt", "cs", "lb", "as"] as const
 
 // ---------------------------------------------------------------------------
 // Row types returned by Snowflake
@@ -44,6 +66,7 @@ interface LoadsRow {
   PODS_COLLECTED: number
   LOADS_ACTIONED: number
   BIDS_COLLECTED: number
+  LOADS_BUILT: number
 }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +144,8 @@ export async function GET(request: Request) {
         TO_CHAR(REPORTING_WEEK, 'YYYY-MM-DD') AS REPORTING_WEEK,
         SUM(LOAD_COUNT_POD) AS PODS_COLLECTED,
         SUM(LOAD_COUNT_TNT) AS LOADS_ACTIONED,
-        SUM(BID_COUNT) AS BIDS_COLLECTED
+        SUM(BID_COUNT) AS BIDS_COLLECTED,
+        SUM(LOADS_BUILT) AS LOADS_BUILT
       FROM MART_WORKFLOW_LOADS_DAILY
       WHERE BROKERAGE_KEY = ?
       GROUP BY REPORTING_WEEK
@@ -147,27 +171,26 @@ export async function GET(request: Request) {
     // -----------------------------------------------------------------------
     // Weekly stacked entries (filtered date range)
     // -----------------------------------------------------------------------
+    const interactions = (r: RoiRow | undefined) =>
+      r ? r.OUTBOUND_CALLS + r.EMAILS_SENT + r.TEXTS_SENT + r.TMS_UPDATES : 0
+
     const weeklyStacked: WeeklyStackedEntry[] = filteredWeeks.map((week) => {
       const wfMap = weeklyMap.get(week)!
-      const dcRow = wfMap.get("dc")
-      const ttRow = wfMap.get("tt")
-      const csRow = wfMap.get("cs")
-
-      const dcHrs = dcRow?.HOURS_SAVED ?? 0
-      const ttHrs = ttRow?.HOURS_SAVED ?? 0
-      const csHrs = csRow?.HOURS_SAVED ?? 0
-
-      const sum = (r: RoiRow | undefined) =>
-        r ? r.OUTBOUND_CALLS + r.EMAILS_SENT + r.TEXTS_SENT + r.TMS_UPDATES : 0
-
+      const hrs: Record<string, number> = {}
+      let totalHrs = 0
+      let totalInteractions = 0
+      for (const key of ALL_WORKFLOW_KEYS) {
+        const row = wfMap.get(key)
+        hrs[key] = Math.round(row?.HOURS_SAVED ?? 0)
+        totalHrs += row?.HOURS_SAVED ?? 0
+        totalInteractions += interactions(row)
+      }
       return {
         week: formatWeekLabel(week),
         weekIso: week,
-        dc: Math.round(dcHrs),
-        tt: Math.round(ttHrs),
-        cs: Math.round(csHrs),
-        total: Math.round(dcHrs + ttHrs + csHrs),
-        interactions: sum(dcRow) + sum(ttRow) + sum(csRow),
+        dc: hrs.dc, tt: hrs.tt, cs: hrs.cs, lb: hrs.lb, as: hrs.as,
+        total: Math.round(totalHrs),
+        interactions: totalInteractions,
       }
     })
 
@@ -178,9 +201,8 @@ export async function GET(request: Request) {
       hours: 0,
       activity: { calls: 0, emails: 0, texts: 0, tmsUpdates: 0 },
     })
-    const wfTotals: Record<string, ReturnType<typeof empty>> = {
-      dc: empty(), tt: empty(), cs: empty(),
-    }
+    const wfTotals: Record<string, ReturnType<typeof empty>> = {}
+    for (const key of ALL_WORKFLOW_KEYS) wfTotals[key] = empty()
 
     for (const week of filteredWeeks) {
       const wfMap = weeklyMap.get(week)!
@@ -198,10 +220,11 @@ export async function GET(request: Request) {
     // -----------------------------------------------------------------------
     // Trends (all weeks, not filtered)
     // -----------------------------------------------------------------------
-    const weeklyHrs: Record<string, number[]> = { dc: [], tt: [], cs: [] }
+    const weeklyHrs: Record<string, number[]> = {}
+    for (const key of ALL_WORKFLOW_KEYS) weeklyHrs[key] = []
     for (const week of allWeeks) {
       const wfMap = weeklyMap.get(week)!
-      for (const key of ["dc", "tt", "cs"]) {
+      for (const key of ALL_WORKFLOW_KEYS) {
         weeklyHrs[key].push(wfMap.get(key)?.HOURS_SAVED ?? 0)
       }
     }
@@ -214,14 +237,15 @@ export async function GET(request: Request) {
         pods: acc.pods + (r.PODS_COLLECTED ?? 0),
         loads: acc.loads + (r.LOADS_ACTIONED ?? 0),
         bids: acc.bids + (r.BIDS_COLLECTED ?? 0),
+        loadsBuilt: acc.loadsBuilt + (r.LOADS_BUILT ?? 0),
       }),
-      { pods: 0, loads: 0, bids: 0 },
+      { pods: 0, loads: 0, bids: 0, loadsBuilt: 0 },
     )
 
     // -----------------------------------------------------------------------
     // Aggregate metrics
     // -----------------------------------------------------------------------
-    const totalHours = wfTotals.dc.hours + wfTotals.tt.hours + wfTotals.cs.hours
+    const totalHours = ALL_WORKFLOW_KEYS.reduce((s, k) => s + wfTotals[k].hours, 0)
     const weeksCount = weeklyStacked.length
     const avgHoursPerWeek = weeksCount > 0 ? totalHours / weeksCount : 0
 
@@ -235,70 +259,43 @@ export async function GET(request: Request) {
     const lastUpdated = MAX_DATE ?? new Date().toISOString().slice(0, 10)
 
     // -----------------------------------------------------------------------
-    // Workflow cards
+    // Outcome values from loads table
     // -----------------------------------------------------------------------
-    const activeWorkflows: WorkflowCard[] = [
-      {
-        key: "dc",
-        name: "Document Collection",
-        status: "Active",
-        color: WORKFLOW_COLORS.dc,
-        activity: wfTotals.dc.activity,
-        outcomes: [
-          { label: "PODs Collected", value: loadsTotals.pods },
-          { label: "Collection Rate (\u22643 days)", value: 0, format: "pct" },
-        ],
-        hoursSaved: wfTotals.dc.hours,
-        trend: computeTrend(weeklyHrs.dc),
-      },
-      {
-        key: "tt",
-        name: "Track & Trace",
-        status: "Active",
-        color: WORKFLOW_COLORS.tt,
-        activity: wfTotals.tt.activity,
-        outcomes: [
-          { label: "TMS Updates Posted", value: wfTotals.tt.activity.tmsUpdates },
-          { label: "Loads Actioned", value: loadsTotals.loads },
-        ],
-        hoursSaved: wfTotals.tt.hours,
-        trend: computeTrend(weeklyHrs.tt),
-      },
-      {
-        key: "cs",
-        name: "Carrier Selection",
-        status: "Active",
-        color: WORKFLOW_COLORS.cs,
-        activity: wfTotals.cs.activity,
-        outcomes: [
-          { label: "Bids Collected", value: loadsTotals.bids },
-          { label: "Loads Booked", value: 0 },
-        ],
-        hoursSaved: wfTotals.cs.hours,
-        trend: computeTrend(weeklyHrs.cs),
-      },
-    ]
+    const outcomeValues: Record<string, number[]> = {
+      dc: [loadsTotals.pods, 0],
+      tt: [wfTotals.tt.activity.tmsUpdates, loadsTotals.loads],
+      cs: [loadsTotals.bids, 0],
+      lb: [loadsTotals.loadsBuilt, 0],
+      as: [0, 0],
+    }
 
-    const notLiveWorkflows: WorkflowCard[] = [
-      {
-        key: "lb", name: "Load Building", status: "Not Live", color: "#888780",
-        activity: { calls: 0, emails: 0, texts: 0, tmsUpdates: 0 },
-        outcomes: [{ label: "Loads Built", value: 0 }, { label: "Tender Acceptance Rate", value: 0, format: "pct" }],
-        hoursSaved: 0, trend: null,
-      },
-      {
-        key: "as", name: "Appointment Scheduling", status: "Not Live", color: "#B4B2A9",
-        activity: { calls: 0, emails: 0, texts: 0, tmsUpdates: 0 },
-        outcomes: [{ label: "Appts Scheduled", value: 0 }, { label: "On-Time Rate", value: 0, format: "pct" }],
-        hoursSaved: 0, trend: null,
-      },
-      {
-        key: "qt", name: "Quoting", status: "Not Live", color: "#A89F91",
-        activity: { calls: 0, emails: 0, texts: 0, tmsUpdates: 0 },
-        outcomes: [{ label: "Quotes Generated", value: 0 }, { label: "Quote-to-Book Rate", value: 0, format: "pct" }],
-        hoursSaved: 0, trend: null,
-      },
-    ]
+    // -----------------------------------------------------------------------
+    // Workflow cards — active if they have any data, otherwise not live
+    // -----------------------------------------------------------------------
+    const workflows: WorkflowCard[] = ALL_WORKFLOW_KEYS.map((key) => {
+      const t = wfTotals[key]
+      const hasData = t.hours > 0 || t.activity.calls > 0 || t.activity.emails > 0 || t.activity.texts > 0 || t.activity.tmsUpdates > 0
+      const outcomes = WORKFLOW_OUTCOMES[key] ?? []
+      const values = outcomeValues[key] ?? [0, 0]
+      return {
+        key,
+        name: WORKFLOW_NAMES[key] ?? key,
+        status: hasData ? "Active" : "Not Live",
+        color: WORKFLOW_COLORS[key] ?? "#888780",
+        activity: t.activity,
+        outcomes: outcomes.map((o, i) => ({ ...o, value: values[i] ?? 0 })),
+        hoursSaved: t.hours,
+        trend: computeTrend(weeklyHrs[key]),
+      } satisfies WorkflowCard
+    })
+
+    // Add Quoting as always "Not Live" (no Snowflake data exists)
+    workflows.push({
+      key: "qt", name: "Quoting", status: "Not Live", color: "#A89F91",
+      activity: { calls: 0, emails: 0, texts: 0, tmsUpdates: 0 },
+      outcomes: [{ label: "Quotes Generated", value: 0 }, { label: "Quote-to-Book Rate", value: 0, format: "pct" }],
+      hoursSaved: 0, trend: null,
+    })
 
     const data: DashboardData = {
       brokerage: titleCase(brokerage),
@@ -309,7 +306,7 @@ export async function GET(request: Request) {
       weeksCount,
       firstWeekPartial,
       weeklyStacked,
-      workflows: [...activeWorkflows, ...notLiveWorkflows],
+      workflows,
     }
 
     return NextResponse.json(data)

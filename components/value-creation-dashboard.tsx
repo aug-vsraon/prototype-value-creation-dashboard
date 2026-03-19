@@ -34,7 +34,7 @@ import {
 // ---------------------------------------------------------------------------
 const WORKFLOW_COLORS: Record<string, string> = {
   dc: "#1D9E75", tt: "#378ADD", cs: "#7F77DD",
-  lb: "#888780", as: "#B4B2A9", qt: "#A89F91",
+  lb: "#E8913A", as: "#E05D9E", qt: "#A89F91",
 }
 
 const WORKFLOW_LABELS: Record<string, string> = {
@@ -200,7 +200,9 @@ function TimeSavedSection({ data }: { data: DashboardData }) {
 
       {/* Legend — active workflows only */}
       <div className="flex flex-wrap items-center gap-4 mb-3">
-        {(["dc", "tt", "cs"] as const).map((key) => (
+        {(["dc", "tt", "cs", "lb", "as"] as const)
+          .filter((key) => data.weeklyStacked.some((w) => w[key] > 0))
+          .map((key) => (
           <div key={key} className="flex items-center gap-1.5 text-xs text-[#6B7280]">
             <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: WORKFLOW_COLORS[key] }} />
             {WORKFLOW_LABELS[key]}
@@ -230,7 +232,9 @@ function TimeSavedSection({ data }: { data: DashboardData }) {
             />
             <Bar dataKey="dc" stackId="hours" fill={WORKFLOW_COLORS.dc} />
             <Bar dataKey="tt" stackId="hours" fill={WORKFLOW_COLORS.tt} />
-            <Bar dataKey="cs" stackId="hours" fill={WORKFLOW_COLORS.cs} radius={[3, 3, 0, 0]}>
+            <Bar dataKey="cs" stackId="hours" fill={WORKFLOW_COLORS.cs} />
+            <Bar dataKey="lb" stackId="hours" fill={WORKFLOW_COLORS.lb} />
+            <Bar dataKey="as" stackId="hours" fill={WORKFLOW_COLORS.as} radius={[3, 3, 0, 0]}>
               <LabelList
                 dataKey="total"
                 position="top"
