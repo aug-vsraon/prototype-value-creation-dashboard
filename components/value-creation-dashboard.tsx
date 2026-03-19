@@ -41,7 +41,7 @@ const WORKFLOW_LABELS: Record<string, string> = {
   lb: "Load Building", as: "Scheduling", qt: "Quoting",
 }
 
-const COL_GRID = "180px 80px 120px 120px 80px 80px 80px 80px 80px 120px"
+const COL_GRID = "200px 160px 160px 80px 80px 80px 80px 90px 120px"
 
 // ---------------------------------------------------------------------------
 // Utility
@@ -109,13 +109,6 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
       </Button>
     </div>
   )
-}
-
-function StatusBadge({ status }: { status: "Active" | "Not Live" }) {
-  if (status === "Active") {
-    return <span className="px-2 py-0.5 text-xs font-medium rounded bg-[#DCFCE7] text-[#16A34A]">Active</span>
-  }
-  return <span className="px-2 py-0.5 text-xs font-medium rounded bg-[#F3F4F6] text-[#9CA3AF]">Not Live</span>
 }
 
 // ---------------------------------------------------------------------------
@@ -204,9 +197,9 @@ function TimeSavedSection({ data }: { data: DashboardData }) {
         <p className="text-sm text-[#6B7280]">{data.period} · {avgRounded} hrs/week avg</p>
       </div>
 
-      {/* Legend */}
+      {/* Legend — active workflows only */}
       <div className="flex flex-wrap items-center gap-4 mb-3">
-        {(["dc", "tt", "cs", "lb", "as", "qt"] as const).map((key) => (
+        {(["dc", "tt", "cs"] as const).map((key) => (
           <div key={key} className="flex items-center gap-1.5 text-xs text-[#6B7280]">
             <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: WORKFLOW_COLORS[key] }} />
             {WORKFLOW_LABELS[key]}
@@ -271,22 +264,22 @@ function Val({ value, format }: { value: number; format?: "pct" }) {
 
 function WorkflowRow({ workflow }: { workflow: WorkflowCardData }) {
   const isNotLive = workflow.status === "Not Live"
+  const borderColor = isNotLive ? "#D1D5DB" : "#16A34A"
   return (
     <div
-      className={`grid items-center rounded-lg border border-[#E5E7EB] ${isNotLive ? "bg-[#FAFAFA]" : "bg-white"}`}
-      style={{ gridTemplateColumns: COL_GRID, minWidth: "1020px" }}
+      className={`grid items-center rounded-lg border border-[#E5E7EB] overflow-hidden ${isNotLive ? "bg-[#FAFAFA]" : "bg-white"}`}
+      style={{ gridTemplateColumns: COL_GRID, minWidth: "1030px", borderLeft: `4px solid ${borderColor}` }}
     >
       <div className="px-3 py-3 flex items-center gap-2 overflow-hidden">
         <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: workflow.color }} />
-        <span className="text-sm font-semibold text-[#111827] truncate">{workflow.name}</span>
+        <span className="text-sm font-semibold text-[#111827]">{workflow.name}</span>
       </div>
-      <div className="px-2 py-3"><StatusBadge status={workflow.status} /></div>
       <div className="px-3 py-2 text-right border-l border-[#E5E7EB]">
-        <p className="text-[10px] text-[#9CA3AF] leading-tight mb-0.5 truncate">{workflow.outcomes[0].label}</p>
+        <p className="text-[10px] text-[#9CA3AF] leading-tight mb-0.5">{workflow.outcomes[0].label}</p>
         <p className="text-sm font-semibold text-[#111827]"><Val value={workflow.outcomes[0].value} format={workflow.outcomes[0].format} /></p>
       </div>
       <div className="px-3 py-2 text-right">
-        <p className="text-[10px] text-[#9CA3AF] leading-tight mb-0.5 truncate">{workflow.outcomes[1].label}</p>
+        <p className="text-[10px] text-[#9CA3AF] leading-tight mb-0.5">{workflow.outcomes[1].label}</p>
         <p className="text-sm font-semibold text-[#111827]"><Val value={workflow.outcomes[1].value} format={workflow.outcomes[1].format} /></p>
       </div>
       <div className="px-3 py-3 text-right text-sm font-semibold text-[#111827] border-l border-[#E5E7EB]"><Val value={workflow.activity.calls} /></div>
@@ -312,10 +305,10 @@ function ByWorkflowSection({ workflows }: { workflows: WorkflowCardData[] }) {
     <div className="space-y-2">
       <h2 className="text-sm font-semibold text-[#6B7280] uppercase tracking-wide">By Workflow</h2>
       <div className="overflow-x-auto">
-        <div style={{ minWidth: "1020px" }}>
+        <div style={{ minWidth: "1030px" }}>
           {/* Shared header — group labels */}
           <div className="grid text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider" style={{ gridTemplateColumns: COL_GRID }}>
-            <div className="col-span-2" />
+            <div />
             <div className="col-span-2 px-3 pb-0.5 border-l border-[#E5E7EB]">Outcomes</div>
             <div className="col-span-4 px-3 pb-0.5 border-l border-[#E5E7EB]">Activity</div>
             <div className="col-span-2" />
@@ -323,14 +316,13 @@ function ByWorkflowSection({ workflows }: { workflows: WorkflowCardData[] }) {
           {/* Shared header — column names */}
           <div className="grid text-[10px] text-[#9CA3AF] uppercase tracking-wider pb-1.5" style={{ gridTemplateColumns: COL_GRID }}>
             <div className="px-3" />
-            <div className="px-2" />
             <div className="px-3 text-right border-l border-[#E5E7EB]" />
             <div className="px-3 text-right" />
             <div className="px-3 text-right border-l border-[#E5E7EB]">Calls</div>
             <div className="px-3 text-right">Emails</div>
             <div className="px-3 text-right">Texts</div>
             <div className="px-3 text-right">TMS</div>
-            <div className="px-3 text-center border-l border-[#E5E7EB]">Trend</div>
+            <div className="px-3 text-center border-l border-[#E5E7EB]">4-Wk Trend</div>
             <div className="px-3 text-right">Hours Saved</div>
           </div>
           {/* Cards */}
@@ -365,7 +357,7 @@ export default function ValueCreationDashboard() {
     <div className="min-h-screen bg-[#FAFAFA]">
       <Sidebar />
 
-      <main className="md:ml-12 p-6 lg:p-8 max-w-[1400px] mx-auto">
+      <main className="md:ml-12 px-6 py-6 lg:px-8 lg:py-8 max-w-[1600px] mx-auto">
         {hasError ? (
           <ErrorState onRetry={() => setHasError(false)} />
         ) : (
