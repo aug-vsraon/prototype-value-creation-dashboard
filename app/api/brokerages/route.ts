@@ -3,6 +3,7 @@ import { createSnowflakeClient } from "@/lib/snowflake"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+export const maxDuration = 30
 
 interface BrokerageRow {
   BROKERAGE_KEY: string

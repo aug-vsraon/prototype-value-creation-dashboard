@@ -10,6 +10,7 @@ import type {
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+export const maxDuration = 30
 
 // ---------------------------------------------------------------------------
 // Snowflake workflow key → dashboard key
@@ -336,8 +337,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Dashboard API error:", error)
-    return NextResponse.json({ error: "Failed to fetch dashboard data" }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error("Dashboard API error:", msg, error)
+    return NextResponse.json({ error: "Failed to fetch dashboard data", detail: msg }, { status: 500 })
   } finally {
     sf.close()
   }
