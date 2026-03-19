@@ -125,7 +125,7 @@ const NOT_LIVE_WORKFLOWS: WorkflowCard[] = [
   {
     key: "as", name: "Appointment Scheduling", status: "Not Live", color: WORKFLOW_COLORS.as,
     activity: { calls: 0, emails: 0, texts: 0, tmsUpdates: 0 },
-    outcomes: [{ label: "Appts Scheduled", value: 0 }, { label: "On-Time Rate", value: 0, format: "pct" }],
+    outcomes: [{ label: "Appointments Scheduled", value: 0 }, { label: "On-Time Rate", value: 0, format: "pct" }],
     hoursSaved: 0, trend: null,
   },
   {
