@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Phone,
   Download,
   RefreshCw,
   AlertCircle,
   CheckCircle,
+  Loader2,
 } from "lucide-react"
 import {
   BarChart,
@@ -340,12 +341,58 @@ function ByWorkflowSection({ workflows }: { workflows: WorkflowCardData[] }) {
 // ---------------------------------------------------------------------------
 // Main Dashboard Component
 // ---------------------------------------------------------------------------
+interface BrokerageOption {
+  key: string
+  label: string
+}
+
 export default function ValueCreationDashboard() {
   const [dateFrom, setDateFrom] = useState("2026-02-09")
   const [dateTo, setDateTo] = useState("2026-03-08")
+  const [brokerage, setBrokerage] = useState("transportation-one")
+  const [brokerages, setBrokerages] = useState<BrokerageOption[]>([])
   const [hasError, setHasError] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const dashData = useMemo(() => fetchDashboardData(dateFrom, dateTo), [dateFrom, dateTo])
+  // Start with static data so the page isn't blank
+  const [dashData, setDashData] = useState<DashboardData>(() => fetchDashboardData(dateFrom, dateTo))
+
+  // Fetch available brokerages on mount
+  useEffect(() => {
+    fetch("/api/brokerages")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data: BrokerageOption[]) => setBrokerages(data))
+      .catch(() => {
+        // Fallback: just show the default
+        setBrokerages([{ key: "transportation-one", label: "Transportation One" }])
+      })
+  }, [])
+
+  // Fetch dashboard data from Snowflake when filters change
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+
+    fetch(`/api/dashboard?from=${dateFrom}&to=${dateTo}&brokerage=${encodeURIComponent(brokerage)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data: DashboardData) => {
+        if (!cancelled) {
+          setDashData(data)
+          setLoading(false)
+          setHasError(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          // Fall back to static data
+          setDashData(fetchDashboardData(dateFrom, dateTo))
+          setLoading(false)
+          toast.error("Could not reach Snowflake — showing cached data.")
+        }
+      })
+
+    return () => { cancelled = true }
+  }, [dateFrom, dateTo, brokerage])
 
   const handleExport = useCallback(() => {
     toast.success("Export ready \u2014 file downloading.", {
@@ -365,10 +412,25 @@ export default function ValueCreationDashboard() {
             {/* Section 1 — Header */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h1 className="text-xl font-semibold text-[#111827]">Value Creation Dashboard</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-semibold text-[#111827]">Value Creation Dashboard</h1>
+                  {loading && <Loader2 size={16} className="animate-spin text-[#9CA3AF]" />}
+                </div>
                 <p className="text-sm text-[#6B7280] mt-0.5">{dashData.brokerage}</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={brokerage}
+                  onChange={(e) => setBrokerage(e.target.value)}
+                  className="px-2.5 py-1.5 border border-[#E5E7EB] rounded-md text-sm text-[#111827] bg-white focus:outline-none focus:ring-2 focus:ring-[#16A34A] focus:border-transparent"
+                >
+                  {brokerages.length === 0 && (
+                    <option value={brokerage}>{dashData.brokerage}</option>
+                  )}
+                  {brokerages.map((b) => (
+                    <option key={b.key} value={b.key}>{b.label}</option>
+                  ))}
+                </select>
                 <div className="flex items-center gap-2 text-sm">
                   <label className="text-xs text-[#6B7280]">From</label>
                   <input
