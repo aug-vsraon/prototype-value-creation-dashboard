@@ -232,12 +232,12 @@ function TimeSavedSection({ data }: { data: DashboardData }) {
             <Bar dataKey="tt" stackId="hours" fill={WORKFLOW_COLORS.tt} />
             <Bar dataKey="cs" stackId="hours" fill={WORKFLOW_COLORS.cs} radius={[3, 3, 0, 0]}>
               <LabelList
-                dataKey="interactions"
+                dataKey="total"
                 position="top"
                 offset={4}
                 fontSize={9}
                 fill="#9CA3AF"
-                formatter={(v: number) => v > 0 ? formatCompact(v) : ""}
+                formatter={(v: number) => v > 0 ? `${formatNumber(v)} hrs` : ""}
               />
             </Bar>
           </BarChart>
