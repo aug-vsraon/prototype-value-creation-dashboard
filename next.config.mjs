@@ -6,6 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  serverExternalPackages: ["snowflake-sdk"],
 }
 
 export default nextConfig
