@@ -56,8 +56,11 @@ interface RoiRow {
   WORKFLOW: string
   HOURS_SAVED: number
   OUTBOUND_CALLS: number
+  INBOUND_CALLS: number
   EMAILS_SENT: number
+  EMAILS_RECEIVED: number
   TEXTS_SENT: number
+  TEXTS_RECEIVED: number
   TMS_UPDATES: number
 }
 
@@ -115,18 +118,31 @@ export async function GET(request: Request) {
 
   const sf = await createSnowflakeClient()
   try {
-    // Run both queries on the same connection (sequentially)
-    const roiRows = await sf.query<RoiRow>(
-      `SELECT
+    const roiSql = `SELECT
         TO_CHAR(DATE_TRUNC('WEEK', DATE), 'YYYY-MM-DD') AS WEEK_START,
         WORKFLOW,
         SUM(HOURS_SAVED) AS HOURS_SAVED,
         SUM(OUTBOUND_CALLS) AS OUTBOUND_CALLS,
+        SUM(INBOUND_CALLS) AS INBOUND_CALLS,
         SUM(EMAILS_SENT) AS EMAILS_SENT,
+        SUM(EMAILS_RECEIVED) AS EMAILS_RECEIVED,
         SUM(NUM_SENT_TEXTS) AS TEXTS_SENT,
+        SUM(NUM_RECEIVED_TEXTS) AS TEXTS_RECEIVED,
         SUM(NUM_TMS_UPDATES_SENT) AS TMS_UPDATES
       FROM MART_REPORTING__ROI_BY_CUSTOMER_AND_WORKFLOW
-      WHERE BROKERAGE_KEY = ?
+      WHERE BROKERAGE_KEY = ?`
+
+    // Date-filtered query for display (day-level precision)
+    const roiFiltered = await sf.query<RoiRow>(
+      `${roiSql} AND DATE >= ? AND DATE <= ?
+      GROUP BY WEEK_START, WORKFLOW
+      ORDER BY WEEK_START, WORKFLOW`,
+      [brokerage, from, to],
+    )
+
+    // Unfiltered query for trend computation (all history)
+    const roiAll = await sf.query<RoiRow>(
+      `${roiSql}
       GROUP BY WEEK_START, WORKFLOW
       ORDER BY WEEK_START, WORKFLOW`,
       [brokerage],
@@ -154,28 +170,35 @@ export async function GET(request: Request) {
     )
 
     // -----------------------------------------------------------------------
-    // Build weekly map (all weeks, for trend computation)
+    // Build weekly maps
     // -----------------------------------------------------------------------
-    const weeklyMap = new Map<string, Map<string, RoiRow>>()
-    for (const row of roiRows) {
-      const wfKey = WORKFLOW_KEY_MAP[row.WORKFLOW]
-      if (!wfKey) continue
-      if (!weeklyMap.has(row.WEEK_START)) weeklyMap.set(row.WEEK_START, new Map())
-      weeklyMap.get(row.WEEK_START)!.set(wfKey, row)
+    const buildMap = (rows: RoiRow[]) => {
+      const map = new Map<string, Map<string, RoiRow>>()
+      for (const row of rows) {
+        const wfKey = WORKFLOW_KEY_MAP[row.WORKFLOW]
+        if (!wfKey) continue
+        if (!map.has(row.WEEK_START)) map.set(row.WEEK_START, new Map())
+        map.get(row.WEEK_START)!.set(wfKey, row)
+      }
+      return map
     }
 
-    const allWeeks = Array.from(weeklyMap.keys()).sort()
-    const inRange = (week: string) => week >= from && week <= to
-    const filteredWeeks = allWeeks.filter(inRange)
+    // Filtered map for display
+    const filteredMap = buildMap(roiFiltered)
+    const filteredWeeks = Array.from(filteredMap.keys()).sort()
+
+    // All-time map for trends
+    const allMap = buildMap(roiAll)
+    const allWeeks = Array.from(allMap.keys()).sort()
 
     // -----------------------------------------------------------------------
     // Weekly stacked entries (filtered date range)
     // -----------------------------------------------------------------------
     const interactions = (r: RoiRow | undefined) =>
-      r ? r.OUTBOUND_CALLS + r.EMAILS_SENT + r.TEXTS_SENT + r.TMS_UPDATES : 0
+      r ? (r.OUTBOUND_CALLS + r.INBOUND_CALLS) + (r.EMAILS_SENT + r.EMAILS_RECEIVED) + (r.TEXTS_SENT + r.TEXTS_RECEIVED) + r.TMS_UPDATES : 0
 
     const weeklyStacked: WeeklyStackedEntry[] = filteredWeeks.map((week) => {
-      const wfMap = weeklyMap.get(week)!
+      const wfMap = filteredMap.get(week)!
       const hrs: Record<string, number> = {}
       let totalHrs = 0
       let totalInteractions = 0
@@ -205,14 +228,14 @@ export async function GET(request: Request) {
     for (const key of ALL_WORKFLOW_KEYS) wfTotals[key] = empty()
 
     for (const week of filteredWeeks) {
-      const wfMap = weeklyMap.get(week)!
+      const wfMap = filteredMap.get(week)!
       for (const [key, row] of wfMap) {
         const t = wfTotals[key]
         if (!t) continue
         t.hours += row.HOURS_SAVED
-        t.activity.calls += row.OUTBOUND_CALLS
-        t.activity.emails += row.EMAILS_SENT
-        t.activity.texts += row.TEXTS_SENT
+        t.activity.calls += row.OUTBOUND_CALLS + row.INBOUND_CALLS
+        t.activity.emails += row.EMAILS_SENT + row.EMAILS_RECEIVED
+        t.activity.texts += row.TEXTS_SENT + row.TEXTS_RECEIVED
         t.activity.tmsUpdates += row.TMS_UPDATES
       }
     }
@@ -223,7 +246,7 @@ export async function GET(request: Request) {
     const weeklyHrs: Record<string, number[]> = {}
     for (const key of ALL_WORKFLOW_KEYS) weeklyHrs[key] = []
     for (const week of allWeeks) {
-      const wfMap = weeklyMap.get(week)!
+      const wfMap = allMap.get(week)!
       for (const key of ALL_WORKFLOW_KEYS) {
         weeklyHrs[key].push(wfMap.get(key)?.HOURS_SAVED ?? 0)
       }
