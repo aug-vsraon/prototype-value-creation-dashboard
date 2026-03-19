@@ -311,15 +311,15 @@ function ByWorkflowSection({ workflows }: { workflows: WorkflowCardData[] }) {
       <h2 className="text-sm font-semibold text-[#6B7280] uppercase tracking-wide">By Workflow</h2>
       <div className="overflow-x-auto">
         <div style={{ minWidth: "1030px" }}>
-          {/* Shared header — group labels */}
-          <div className="grid text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider" style={{ gridTemplateColumns: COL_GRID }}>
+          {/* Shared header — group labels (ml-1 compensates for 4px card left-border) */}
+          <div className="grid text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider ml-1" style={{ gridTemplateColumns: COL_GRID }}>
             <div />
             <div className="col-span-2 px-3 pb-0.5 border-l border-[#E5E7EB]">Outcomes</div>
             <div className="col-span-4 px-3 pb-0.5 border-l border-[#E5E7EB]">Activity</div>
             <div className="col-span-2" />
           </div>
           {/* Shared header — column names */}
-          <div className="grid text-[10px] text-[#9CA3AF] uppercase tracking-wider pb-1.5" style={{ gridTemplateColumns: COL_GRID }}>
+          <div className="grid text-[10px] text-[#9CA3AF] uppercase tracking-wider pb-1.5 ml-1" style={{ gridTemplateColumns: COL_GRID }}>
             <div className="px-3" />
             <div className="px-3 text-right border-l border-[#E5E7EB]" />
             <div className="px-3 text-right" />
