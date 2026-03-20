@@ -133,7 +133,7 @@ SELECT
   k.WEEK_START,
   k.WORKFLOW,
   ROUND(
-    (COALESCE(e.emails_sent, 0) + COALESCE(t.texts_sent, 0) + COALESCE(tm.tms_updates, 0)) / 60.0
+    (0.5 * COALESCE(e.emails_sent, 0) + 0.5 * COALESCE(t.texts_sent, 0) + 1 * COALESCE(tm.tms_updates, 0)) / 60.0
     + COALESCE(c.outbound_call_hours, 0)
     + COALESCE(c.inbound_call_hours, 0),
     1

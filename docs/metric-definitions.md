@@ -102,18 +102,18 @@ These are the columns shown in the "By Workflow" table for each workflow.
 
 **Formula:**
 ```
-hours_saved = (emails_sent + texts_sent + tms_updates) / 60.0
+hours_saved = (0.5 * emails_sent + 0.5 * texts_sent + 1 * tms_updates) / 60.0
               + outbound_call_hours
               + inbound_call_hours
 ```
 
 **Assumptions:**
-- Each outbound email = 1 minute of human time
-- Each outbound text = 1 minute of human time
+- Each outbound email = 0.5 minutes (30 seconds) of human time
+- Each outbound text = 0.5 minutes (30 seconds) of human time
 - Each TMS update = 1 minute of human time
 - Calls = actual call duration (from `raw_call_analyzer__main_call_metrics.duration_seconds`)
 
-**What changed from the original mart:** The original `MART_REPORTING__ROI_BY_CUSTOMER_AND_WORKFLOW.HOURS_SAVED` included inbound emails, inbound texts, and all calls (including failed/unanswered). The new formula uses only outbound emails/texts and filtered calls.
+**What changed from the original mart:** The original `MART_REPORTING__ROI_BY_CUSTOMER_AND_WORKFLOW.HOURS_SAVED` used 1 minute per email/text/TMS, included inbound emails and texts, and counted all calls (including failed/unanswered). The new formula uses 0.5 min for emails/texts, 1 min for TMS, outbound-only emails/texts, and filtered calls.
 
 **Wages saved:** `hours_saved * $35/hr` (average wage assumption).
 
@@ -266,7 +266,7 @@ AND COALESCE(ca.call_outcome, '') NOT IN (
 
 ### Change 2: Hours saved formula
 
-In the final SELECT, change `hours_saved` to use outbound emails/texts only:
+In the final SELECT, change `hours_saved` to use outbound emails/texts only with updated time assumptions:
 
 ```sql
 -- Old:
@@ -274,7 +274,7 @@ In the final SELECT, change `hours_saved` to use outbound emails/texts only:
 + inbound_call_hours + outbound_call_hours
 
 -- New:
-(1 * emails_sent + 1 * sent_texts + 1 * tms) / 60.0
+(0.5 * emails_sent + 0.5 * sent_texts + 1 * tms) / 60.0
 + inbound_call_hours + outbound_call_hours
 ```
 
