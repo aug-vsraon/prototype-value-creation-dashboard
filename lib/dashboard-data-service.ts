@@ -303,7 +303,7 @@ export function fetchDashboardData(from: string, to: string): DashboardData {
   return {
     brokerage: data.meta.brokerage_display_name,
     period: derivedPeriod,
-    lastUpdated: data.meta.generated_date,
+    lastUpdated: new Date().toISOString().slice(0, 10),
     totalHours,
     avgHoursPerWeek,
     weeksCount,
