@@ -450,7 +450,7 @@ export default function ValueCreationDashboard() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-semibold text-[#111827]">Value Creation Dashboard</h1>
+                  <h1 className="text-xl font-semibold text-[#111827]">Impact Scorecard</h1>
                   {loading && <Loader2 size={16} className="animate-spin text-[#9CA3AF]" />}
                 </div>
                 <p className="text-sm text-[#6B7280] mt-0.5">{dashData.brokerage}</p>
