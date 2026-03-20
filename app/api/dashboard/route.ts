@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createSnowflakeClient } from "@/lib/snowflake"
+import { buildRoiQuery } from "@/lib/roi-query"
 import type {
   DashboardData,
   WeeklyStackedEntry,
@@ -10,7 +11,7 @@ import type {
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const maxDuration = 30
+export const maxDuration = 60
 
 // ---------------------------------------------------------------------------
 // Snowflake workflow key → dashboard key
@@ -131,42 +132,20 @@ export async function GET(request: Request) {
   // Two connections for parallel query execution
   const [sf1, sf2] = await Promise.all([createSnowflakeClient(), createSnowflakeClient()])
   try {
-    const roiSql = `SELECT
-        TO_CHAR(DATE_TRUNC('WEEK', DATE), 'YYYY-MM-DD') AS WEEK_START,
-        WORKFLOW,
-        SUM(HOURS_SAVED) AS HOURS_SAVED,
-        SUM(OUTBOUND_CALLS) AS OUTBOUND_CALLS,
-        SUM(INBOUND_CALLS) AS INBOUND_CALLS,
-        SUM(EMAILS_SENT) AS EMAILS_SENT,
-        SUM(EMAILS_RECEIVED) AS EMAILS_RECEIVED,
-        SUM(NUM_SENT_TEXTS) AS TEXTS_SENT,
-        SUM(NUM_RECEIVED_TEXTS) AS TEXTS_RECEIVED,
-        SUM(NUM_TMS_UPDATES_SENT) AS TMS_UPDATES
-      FROM MART_REPORTING__ROI_BY_CUSTOMER_AND_WORKFLOW
-      WHERE BROKERAGE_KEY = ?`
-
     // -----------------------------------------------------------------------
     // Run ROI queries on sf1, outcome queries on sf2 (in parallel)
+    // Uses raw tables with value-creation filtering instead of the mart table.
     // -----------------------------------------------------------------------
+    const filteredQuery = buildRoiQuery({ brokerageKey: brokerage, dateFrom: from, dateTo: to })
+    const allQuery = buildRoiQuery({ brokerageKey: brokerage })
+
     const roiPromise = (async () => {
-      const roiFiltered = await sf1.query<RoiRow>(
-        `${roiSql} AND DATE >= ? AND DATE < ?
-        GROUP BY WEEK_START, WORKFLOW
-        ORDER BY WEEK_START, WORKFLOW`,
-        [brokerage, from, to],
-      )
-      const roiAll = await sf1.query<RoiRow>(
-        `${roiSql}
-        GROUP BY WEEK_START, WORKFLOW
-        ORDER BY WEEK_START, WORKFLOW`,
-        [brokerage],
-      )
-      const [{ MAX_DATE }] = await sf1.query<{ MAX_DATE: string }>(
-        `SELECT TO_CHAR(MAX(DATE), 'YYYY-MM-DD') AS MAX_DATE
-         FROM MART_REPORTING__ROI_BY_CUSTOMER_AND_WORKFLOW
-         WHERE BROKERAGE_KEY = ?`,
-        [brokerage],
-      )
+      const roiFiltered = await sf1.query<RoiRow>(filteredQuery.sql, filteredQuery.binds)
+      const roiAll = await sf1.query<RoiRow>(allQuery.sql, allQuery.binds)
+      // Derive MAX_DATE from results instead of querying the mart
+      const MAX_DATE = roiAll.length > 0
+        ? roiAll.reduce((max, r) => (r.WEEK_START > max ? r.WEEK_START : max), roiAll[0].WEEK_START)
+        : new Date().toISOString().slice(0, 10)
       return { roiFiltered, roiAll, MAX_DATE }
     })()
 
@@ -322,7 +301,7 @@ export async function GET(request: Request) {
     // Weekly stacked entries (filtered date range)
     // -----------------------------------------------------------------------
     const interactions = (r: RoiRow | undefined) =>
-      r ? (r.OUTBOUND_CALLS + r.INBOUND_CALLS) + (r.EMAILS_SENT + r.EMAILS_RECEIVED) + (r.TEXTS_SENT + r.TEXTS_RECEIVED) + r.TMS_UPDATES : 0
+      r ? (r.OUTBOUND_CALLS + r.INBOUND_CALLS) + r.EMAILS_SENT + r.TEXTS_SENT + r.TMS_UPDATES : 0
 
     const weeklyStacked: WeeklyStackedEntry[] = filteredWeeks.map((week) => {
       const wfMap = filteredMap.get(week)!
@@ -361,8 +340,8 @@ export async function GET(request: Request) {
         if (!t) continue
         t.hours += row.HOURS_SAVED
         t.activity.calls += row.OUTBOUND_CALLS + row.INBOUND_CALLS
-        t.activity.emails += row.EMAILS_SENT + row.EMAILS_RECEIVED
-        t.activity.texts += row.TEXTS_SENT + row.TEXTS_RECEIVED
+        t.activity.emails += row.EMAILS_SENT
+        t.activity.texts += row.TEXTS_SENT
         t.activity.tmsUpdates += row.TMS_UPDATES
       }
     }
