@@ -136,17 +136,23 @@ export async function GET(request: Request) {
     // Run ROI queries on sf1, outcome queries on sf2 (in parallel)
     // Uses raw tables with value-creation filtering instead of the mart table.
     // -----------------------------------------------------------------------
+    // Extend date range 8 weeks back from `from` for trend computation
+    // (avoids scanning all-time history — only need last 8 weeks before the range)
+    const trendFrom = new Date(from)
+    trendFrom.setDate(trendFrom.getDate() - 8 * 7)
+    const trendFromStr = trendFrom.toISOString().slice(0, 10)
+
     const filteredQuery = buildRoiQuery({ brokerageKey: brokerage, dateFrom: from, dateTo: to })
-    const allQuery = buildRoiQuery({ brokerageKey: brokerage })
+    const trendQuery = buildRoiQuery({ brokerageKey: brokerage, dateFrom: trendFromStr, dateTo: to })
 
     const roiPromise = (async () => {
       const roiFiltered = await sf1.query<RoiRow>(filteredQuery.sql, filteredQuery.binds)
-      const roiAll = await sf1.query<RoiRow>(allQuery.sql, allQuery.binds)
-      // Derive MAX_DATE from results instead of querying the mart
-      const MAX_DATE = roiAll.length > 0
-        ? roiAll.reduce((max, r) => (r.WEEK_START > max ? r.WEEK_START : max), roiAll[0].WEEK_START)
+      const roiTrend = await sf1.query<RoiRow>(trendQuery.sql, trendQuery.binds)
+      // Derive MAX_DATE from trend results
+      const MAX_DATE = roiTrend.length > 0
+        ? roiTrend.reduce((max, r) => (r.WEEK_START > max ? r.WEEK_START : max), roiTrend[0].WEEK_START)
         : new Date().toISOString().slice(0, 10)
-      return { roiFiltered, roiAll, MAX_DATE }
+      return { roiFiltered, roiTrend, MAX_DATE }
     })()
 
     const outcomePromise = (async () => {
@@ -272,7 +278,7 @@ export async function GET(request: Request) {
 
     // Await both connection groups in parallel
     const [roiResults, outcomeResults] = await Promise.all([roiPromise, outcomePromise])
-    const { roiFiltered, roiAll, MAX_DATE } = roiResults
+    const { roiFiltered, roiTrend, MAX_DATE } = roiResults
     const { dcOutcomeRows, ttOutcomeRows, csBidsRows, csBookedRows } = outcomeResults
 
     // -----------------------------------------------------------------------
@@ -293,9 +299,9 @@ export async function GET(request: Request) {
     const filteredMap = buildMap(roiFiltered)
     const filteredWeeks = Array.from(filteredMap.keys()).sort()
 
-    // All-time map for trends
-    const allMap = buildMap(roiAll)
-    const allWeeks = Array.from(allMap.keys()).sort()
+    // Extended-range map for trends (8 weeks before `from` through `to`)
+    const trendMap = buildMap(roiTrend)
+    const trendWeeks = Array.from(trendMap.keys()).sort()
 
     // -----------------------------------------------------------------------
     // Weekly stacked entries (filtered date range)
@@ -351,8 +357,8 @@ export async function GET(request: Request) {
     // -----------------------------------------------------------------------
     const weeklyHrs: Record<string, number[]> = {}
     for (const key of ALL_WORKFLOW_KEYS) weeklyHrs[key] = []
-    for (const week of allWeeks) {
-      const wfMap = allMap.get(week)!
+    for (const week of trendWeeks) {
+      const wfMap = trendMap.get(week)!
       for (const key of ALL_WORKFLOW_KEYS) {
         weeklyHrs[key].push(wfMap.get(key)?.HOURS_SAVED ?? 0)
       }
