@@ -190,13 +190,14 @@ function TimeSavedSection({ data }: { data: DashboardData }) {
 
   return (
     <div className="bg-white rounded-lg border border-[#E5E7EB] p-6">
-      <div className="space-y-1 mb-5">
-        <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-bold text-[#111827]">{formatNumber(Math.round(data.totalHours))}</span>
-          <span className="text-lg text-[#9CA3AF]">hours saved</span>
-        </div>
-        <p className="text-sm text-[#6B7280]">{data.period} · {avgRounded} hrs/week avg</p>
-      </div>
+      {/* Compact stat line */}
+      <p className="text-sm mb-2">
+        <span className="font-semibold text-[#111827]">{formatNumber(Math.round(data.totalHours))} hrs total</span>
+        <span className="text-[#9CA3AF]"> · </span>
+        <span className="font-semibold text-[#111827]">{avgRounded} hrs/week avg</span>
+        <span className="text-[#9CA3AF]"> · </span>
+        <span className="text-[#9CA3AF]">{data.period}</span>
+      </p>
 
       {/* Legend — active workflows only */}
       <div className="flex flex-wrap items-center gap-4 mb-3">
@@ -350,9 +351,41 @@ interface BrokerageOption {
   label: string
 }
 
+type DatePreset = "last30" | "last90" | "ytd" | "all"
+
+const DATE_PRESETS: { key: DatePreset; label: string }[] = [
+  { key: "last30", label: "Last 30 Days" },
+  { key: "last90", label: "Last 90 Days" },
+  { key: "ytd", label: "YTD" },
+  { key: "all", label: "All Time" },
+]
+
+function computeDateRange(preset: DatePreset): { from: string; to: string } {
+  const today = new Date()
+  const to = today.toISOString().slice(0, 10)
+  switch (preset) {
+    case "last30": {
+      const from = new Date(today)
+      from.setDate(from.getDate() - 30)
+      return { from: from.toISOString().slice(0, 10), to }
+    }
+    case "last90": {
+      const from = new Date(today)
+      from.setDate(from.getDate() - 90)
+      return { from: from.toISOString().slice(0, 10), to }
+    }
+    case "ytd": {
+      return { from: `${today.getFullYear()}-01-01`, to }
+    }
+    case "all": {
+      return { from: "2020-01-01", to }
+    }
+  }
+}
+
 export default function ValueCreationDashboard() {
-  const [dateFrom, setDateFrom] = useState("2026-02-09")
-  const [dateTo, setDateTo] = useState("2026-03-08")
+  const [preset, setPreset] = useState<DatePreset>("last30")
+  const { from: dateFrom, to: dateTo } = computeDateRange(preset)
   const [brokerage, setBrokerage] = useState("transportation-one")
   const [brokerages, setBrokerages] = useState<BrokerageOption[]>([])
   const [hasError, setHasError] = useState(false)
@@ -435,21 +468,20 @@ export default function ValueCreationDashboard() {
                     <option key={b.key} value={b.key}>{b.label}</option>
                   ))}
                 </select>
-                <div className="flex items-center gap-2 text-sm">
-                  <label className="text-xs text-[#6B7280]">From</label>
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="px-2.5 py-1.5 border border-[#E5E7EB] rounded-md text-sm text-[#111827] bg-white focus:outline-none focus:ring-2 focus:ring-[#16A34A] focus:border-transparent"
-                  />
-                  <label className="text-xs text-[#6B7280]">To</label>
-                  <input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="px-2.5 py-1.5 border border-[#E5E7EB] rounded-md text-sm text-[#111827] bg-white focus:outline-none focus:ring-2 focus:ring-[#16A34A] focus:border-transparent"
-                  />
+                <div className="inline-flex rounded-lg border border-[#E5E7EB] overflow-hidden">
+                  {DATE_PRESETS.map((p) => (
+                    <button
+                      key={p.key}
+                      onClick={() => setPreset(p.key)}
+                      className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                        preset === p.key
+                          ? "bg-[#16A34A] text-white"
+                          : "bg-white text-[#6B7280] hover:bg-[#F9FAFB]"
+                      } ${p.key !== "last30" ? "border-l border-[#E5E7EB]" : ""}`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
                 </div>
                 <Button variant="outline" onClick={handleExport} className="rounded-md border-[#E5E7EB] text-[#111827]">
                   <Download size={16} className="mr-2" />Export CSV

@@ -291,9 +291,17 @@ export function fetchDashboardData(from: string, to: string): DashboardData {
     },
   ]
 
+  // Derive the displayed period from the actual filtered date range
+  const formatDateLabel = (iso: string) => {
+    const [y, m, d] = iso.split("-").map(Number)
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    return `${months[m - 1]} ${d}, ${y}`
+  }
+  const derivedPeriod = `${formatDateLabel(from)} – ${formatDateLabel(to)}`
+
   return {
     brokerage: data.meta.brokerage_display_name,
-    period: data.tier1_program_value.summary.period,
+    period: derivedPeriod,
     lastUpdated: data.meta.generated_date,
     totalHours,
     avgHoursPerWeek,
