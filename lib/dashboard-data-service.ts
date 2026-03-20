@@ -251,14 +251,15 @@ export function fetchDashboardData(from: string, to: string): DashboardData {
   const dcWeeklyHrs = allDC.map(w => hrs(w.calls_placed, w.emails_sent, 0, 0))
   const csWeeklyHrs = allCS.map(w => hrs(w.bids_from_calls, w.bids_from_emails, 0, 0))
 
-  // Outcomes (use ALL data, not filtered)
-  const ttLoadsActioned = data.track_and_trace.tier3_weekly_impact.reduce((s, w) => s + w.loads_actioned, 0)
-  const dcPodData = data.document_collection.tier2_pod_attribution_weekly
-  const dcPods = dcPodData.reduce((s, w) => s + w.pods_augie, 0)
-  const dcWithin3 = dcPodData.reduce((s, w) => s + w.time_buckets.within_1_day + w.time_buckets.within_2_days + w.time_buckets.within_3_days, 0)
+  // Outcomes (filtered by date range)
+  const ttTier3Filtered = data.track_and_trace.tier3_weekly_impact.filter(w => w.week_iso ? inRange(w.week_iso, from, to) : true)
+  const ttLoadsActioned = ttTier3Filtered.reduce((s, w) => s + w.loads_actioned, 0)
+  const dcPodFiltered = data.document_collection.tier2_pod_attribution_weekly.filter(w => w.week_iso ? inRange(w.week_iso, from, to) : true)
+  const dcPods = dcPodFiltered.reduce((s, w) => s + w.pods_augie, 0)
+  const dcWithin3 = dcPodFiltered.reduce((s, w) => s + w.time_buckets.within_1_day + w.time_buckets.within_2_days + w.time_buckets.within_3_days, 0)
   const dcRate = dcPods > 0 ? (dcWithin3 / dcPods) * 100 : 0
-  const csBids = allCS.reduce((s, w) => s + w.bids_collected, 0)
-  const csBooked = allCS.reduce((s, w) => s + w.loads_booked, 0)
+  const csBids = csWeeks.reduce((s, w) => s + w.bids_collected, 0)
+  const csBooked = csWeeks.reduce((s, w) => s + w.loads_booked, 0)
 
   // Assemble active workflow cards
   const activeWorkflows: WorkflowCard[] = [
