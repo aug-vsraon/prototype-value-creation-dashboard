@@ -65,12 +65,23 @@ interface RoiRow {
   TMS_UPDATES: number
 }
 
-interface LoadsRow {
-  REPORTING_WEEK: string
-  PODS_COLLECTED: number
-  LOADS_ACTIONED: number
-  BIDS_COLLECTED: number
-  LOADS_BUILT: number
+interface DcOutcomeRow {
+  POD_COLLECTED_WITH_3_DAYS: number
+  POD_COLLECTED_PERCENT: number
+}
+
+interface TtOutcomeRow {
+  NUM_ACTIONED_LOADS: number
+  TRANSIT_UPDATES_SENT: number
+  STOP_UPDATES_SENT: number
+}
+
+interface CsBidsRow {
+  NUM_BIDS_COLLECTED: number
+}
+
+interface CsBookedRow {
+  NUM_LOADS_BOOKED_FROM_BIDS: number
 }
 
 // ---------------------------------------------------------------------------
@@ -117,7 +128,8 @@ export async function GET(request: Request) {
   const to = url.searchParams.get("to") ?? "2026-03-08"
   const brokerage = url.searchParams.get("brokerage") ?? "transportation-one"
 
-  const sf = await createSnowflakeClient()
+  // Two connections for parallel query execution
+  const [sf1, sf2] = await Promise.all([createSnowflakeClient(), createSnowflakeClient()])
   try {
     const roiSql = `SELECT
         TO_CHAR(DATE_TRUNC('WEEK', DATE), 'YYYY-MM-DD') AS WEEK_START,
@@ -133,44 +145,156 @@ export async function GET(request: Request) {
       FROM MART_REPORTING__ROI_BY_CUSTOMER_AND_WORKFLOW
       WHERE BROKERAGE_KEY = ?`
 
-    // Date-filtered query for display (day-level precision)
-    const roiFiltered = await sf.query<RoiRow>(
-      `${roiSql} AND DATE >= ? AND DATE <= ?
-      GROUP BY WEEK_START, WORKFLOW
-      ORDER BY WEEK_START, WORKFLOW`,
-      [brokerage, from, to],
-    )
+    // -----------------------------------------------------------------------
+    // Run ROI queries on sf1, outcome queries on sf2 (in parallel)
+    // -----------------------------------------------------------------------
+    const roiPromise = (async () => {
+      const roiFiltered = await sf1.query<RoiRow>(
+        `${roiSql} AND DATE >= ? AND DATE < ?
+        GROUP BY WEEK_START, WORKFLOW
+        ORDER BY WEEK_START, WORKFLOW`,
+        [brokerage, from, to],
+      )
+      const roiAll = await sf1.query<RoiRow>(
+        `${roiSql}
+        GROUP BY WEEK_START, WORKFLOW
+        ORDER BY WEEK_START, WORKFLOW`,
+        [brokerage],
+      )
+      const [{ MAX_DATE }] = await sf1.query<{ MAX_DATE: string }>(
+        `SELECT TO_CHAR(MAX(DATE), 'YYYY-MM-DD') AS MAX_DATE
+         FROM MART_REPORTING__ROI_BY_CUSTOMER_AND_WORKFLOW
+         WHERE BROKERAGE_KEY = ?`,
+        [brokerage],
+      )
+      return { roiFiltered, roiAll, MAX_DATE }
+    })()
 
-    // Unfiltered query for trend computation (all history)
-    const roiAll = await sf.query<RoiRow>(
-      `${roiSql}
-      GROUP BY WEEK_START, WORKFLOW
-      ORDER BY WEEK_START, WORKFLOW`,
-      [brokerage],
-    )
-
-    const [{ MAX_DATE }] = await sf.query<{ MAX_DATE: string }>(
-      `SELECT TO_CHAR(MAX(DATE), 'YYYY-MM-DD') AS MAX_DATE
-       FROM MART_REPORTING__ROI_BY_CUSTOMER_AND_WORKFLOW
-       WHERE BROKERAGE_KEY = ?`,
-      [brokerage],
-    )
-
-    const loadsRows = await sf.query<LoadsRow>(
+    const outcomePromise = (async () => {
+      // Document Collection: PODs collected within 72h + collection rate
+      const dcOutcomeRows = await sf2.query<DcOutcomeRow>(
       `SELECT
-        TO_CHAR(REPORTING_WEEK, 'YYYY-MM-DD') AS REPORTING_WEEK,
-        SUM(LOAD_COUNT_POD) AS PODS_COLLECTED,
-        SUM(LOAD_COUNT_TNT) AS LOADS_ACTIONED,
-        SUM(BID_COUNT) AS BIDS_COLLECTED,
-        SUM(LOADS_BUILT) AS LOADS_BUILT
-      FROM MART_WORKFLOW_LOADS_DAILY
-      WHERE BROKERAGE_KEY = ?
-        AND REPORTING_DAY >= ?
-        AND REPORTING_DAY <= ?
-      GROUP BY REPORTING_WEEK
-      ORDER BY REPORTING_WEEK`,
-      [brokerage, from, to],
+        SUM(CASE
+          WHEN pod_collected_time >= INITIAL_OUTREACH_TIME
+            AND pod_collected_time < INITIAL_OUTREACH_TIME + INTERVAL '72 hours'
+          THEN 1 ELSE 0 END) AS POD_COLLECTED_WITH_3_DAYS,
+        CASE WHEN COUNT(*) > 0
+          THEN ROUND(
+            SUM(CASE
+              WHEN pod_collected_time >= INITIAL_OUTREACH_TIME
+                AND pod_collected_time < INITIAL_OUTREACH_TIME + INTERVAL '72 hours'
+              THEN 1 ELSE 0 END)
+            / COUNT(*), 3) * 100.0
+          ELSE 0 END AS POD_COLLECTED_PERCENT
+      FROM mart_agent_orchestrator__pod_collection_outcomes oc
+      LEFT JOIN int_global_config__excluded_brokers ex
+        ON oc.brokerage_key = ex.brokerage_key
+      WHERE oc.INITIAL_OUTREACH_TIME IS NOT NULL
+        AND ex.brokerage_key IS NULL
+        AND oc.INITIAL_OUTREACH_TIME >= ?
+        AND oc.INITIAL_OUTREACH_TIME < ?
+        AND oc.brokerage_key = ?`,
+      [from, to, brokerage],
     )
+
+    // Track & Trace: loads actioned + transit/stop updates
+    // Matches Metabase logic: LEFT JOIN from billing loads to events,
+    // GROUP BY e.load_id, then SUM(1) for actioned loads count
+    const ttOutcomeRows = await sf2.query<TtOutcomeRow>(
+      `WITH billed_loads AS (
+        SELECT *
+        FROM mart_agent_orchestrator__workflow_loads_for_billing
+        WHERE workflow_name = 'TRACK_AND_TRACE'
+          AND first_executed >= ?
+          AND first_executed < ?
+          AND brokerage_key = ?
+      ),
+      load_level_info AS (
+        SELECT
+          e.load_id,
+          COUNT(DISTINCT CASE WHEN e.code = 'TRANSIT_UPDATE' THEN e.id END) AS transit_updates_sent,
+          COUNT(DISTINCT CASE WHEN e.code = 'STOP_UPDATE' THEN e.id END) AS stop_updates_sent
+        FROM billed_loads b
+        LEFT JOIN INT_AGENT_ORCHESTRATOR__EVENTS_FLATTENED e
+          ON b.load_id = e.load_id
+          AND e.workflow = 'track_and_trace'
+          AND e.created_at >= DATEADD('day', -7, ?::DATE)
+          AND e.code IN ('STOP_UPDATE', 'TRANSIT_UPDATE', 'WORKFLOW_STATUS_UPDATE')
+        GROUP BY 1
+      )
+      SELECT
+        SUM(1) AS NUM_ACTIONED_LOADS,
+        SUM(transit_updates_sent) AS TRANSIT_UPDATES_SENT,
+        SUM(stop_updates_sent) AS STOP_UPDATES_SENT
+      FROM load_level_info`,
+      [from, to, brokerage, from],
+    )
+
+    // Carrier Selection — bids collected
+    const csBidsRows = await sf2.query<CsBidsRow>(
+      `SELECT COUNT(*) AS NUM_BIDS_COLLECTED
+      FROM raw_carrier_selection__bid
+      WHERE amount IS NOT NULL
+        AND load_id IS NOT NULL
+        AND (call_id IS NOT NULL OR email_thread_id IS NOT NULL)
+        AND created_at >= ?
+        AND created_at < ?
+        AND brokerage_key = ?`,
+      [from, to, brokerage],
+    )
+
+    // Carrier Selection — loads booked from bids (via MC number matching)
+    // Date predicates pushed into CTEs to narrow scans on large tables
+    const csBookedRows = await sf2.query<CsBookedRow>(
+      `WITH mc_number_for_booked_load AS (
+        SELECT
+          cd.load_id,
+          TO_VARCHAR(c.mc_number) AS booked_mc,
+          MIN(cd.updated_at) AS first_booking_time,
+          MIN(b.created_at) AS first_bid_that_is_booked
+        FROM raw_load__carrier_details_log cd
+        INNER JOIN raw_directory__carrier c ON cd.carrier_id = c.id
+        INNER JOIN raw_carrier_selection__bid b
+          ON cd.load_id::VARCHAR = b.load_id::VARCHAR
+          AND c.mc_number::VARCHAR = b.carrier_mc_number::VARCHAR
+          AND b.amount IS NOT NULL
+        WHERE c.mc_number IS NOT NULL
+          AND cd.updated_at >= ?
+          AND cd.updated_at < ?
+          AND b.created_at >= ?
+          AND b.created_at < ?
+        GROUP BY 1, 2
+      ),
+      all_records_with_booked_bid AS (
+        SELECT load_id, first_booking_time, first_bid_that_is_booked
+          FROM mc_number_for_booked_load
+        UNION ALL
+        SELECT load_id, first_booking_time, first_bid_that_is_booked
+          FROM mc_number_for_booked_load
+      ),
+      booked_load_info AS (
+        SELECT
+          load_id,
+          MIN(first_booking_time) AS first_booking_time
+        FROM all_records_with_booked_bid
+        GROUP BY 1
+      )
+      SELECT COUNT(*) AS NUM_LOADS_BOOKED_FROM_BIDS
+      FROM booked_load_info b
+      INNER JOIN raw_load__load l ON b.load_id = l.id
+      WHERE b.first_booking_time >= ?
+        AND b.first_booking_time < ?
+        AND l.brokerage_key = ?`,
+      [from, to, from, to, from, to, brokerage],
+    )
+
+      return { dcOutcomeRows, ttOutcomeRows, csBidsRows, csBookedRows }
+    })()
+
+    // Await both connection groups in parallel
+    const [roiResults, outcomeResults] = await Promise.all([roiPromise, outcomePromise])
+    const { roiFiltered, roiAll, MAX_DATE } = roiResults
+    const { dcOutcomeRows, ttOutcomeRows, csBidsRows, csBookedRows } = outcomeResults
 
     // -----------------------------------------------------------------------
     // Build weekly maps
@@ -256,17 +380,12 @@ export async function GET(request: Request) {
     }
 
     // -----------------------------------------------------------------------
-    // Outcome totals from loads table (date-filtered)
+    // Outcome values from dedicated queries
     // -----------------------------------------------------------------------
-    const loadsTotals = loadsRows.reduce(
-      (acc, r) => ({
-        pods: acc.pods + (r.PODS_COLLECTED ?? 0),
-        loads: acc.loads + (r.LOADS_ACTIONED ?? 0),
-        bids: acc.bids + (r.BIDS_COLLECTED ?? 0),
-        loadsBuilt: acc.loadsBuilt + (r.LOADS_BUILT ?? 0),
-      }),
-      { pods: 0, loads: 0, bids: 0, loadsBuilt: 0 },
-    )
+    const dcOutcome = dcOutcomeRows[0] ?? { POD_COLLECTED_WITH_3_DAYS: 0, POD_COLLECTED_PERCENT: 0 }
+    const ttOutcome = ttOutcomeRows[0] ?? { NUM_ACTIONED_LOADS: 0, TRANSIT_UPDATES_SENT: 0, STOP_UPDATES_SENT: 0 }
+    const csBids = csBidsRows[0] ?? { NUM_BIDS_COLLECTED: 0 }
+    const csBooked = csBookedRows[0] ?? { NUM_LOADS_BOOKED_FROM_BIDS: 0 }
 
     // -----------------------------------------------------------------------
     // Aggregate metrics
@@ -285,13 +404,13 @@ export async function GET(request: Request) {
     const lastUpdated = MAX_DATE ?? new Date().toISOString().slice(0, 10)
 
     // -----------------------------------------------------------------------
-    // Outcome values from loads table
+    // Outcome values mapped to workflow card slots
     // -----------------------------------------------------------------------
     const outcomeValues: Record<string, number[]> = {
-      dc: [loadsTotals.pods, 0],
-      tt: [wfTotals.tt.activity.tmsUpdates, loadsTotals.loads],
-      cs: [loadsTotals.bids, 0],
-      lb: [loadsTotals.loadsBuilt, 0],
+      dc: [dcOutcome.POD_COLLECTED_WITH_3_DAYS, dcOutcome.POD_COLLECTED_PERCENT],
+      tt: [ttOutcome.TRANSIT_UPDATES_SENT + ttOutcome.STOP_UPDATES_SENT, ttOutcome.NUM_ACTIONED_LOADS],
+      cs: [csBids.NUM_BIDS_COLLECTED, csBooked.NUM_LOADS_BOOKED_FROM_BIDS],
+      lb: [0, 0],
       as: [0, 0],
     }
 
@@ -341,6 +460,7 @@ export async function GET(request: Request) {
     console.error("Dashboard API error:", msg, error)
     return NextResponse.json({ error: "Failed to fetch dashboard data", detail: msg }, { status: 500 })
   } finally {
-    sf.close()
+    sf1.close()
+    sf2.close()
   }
 }
