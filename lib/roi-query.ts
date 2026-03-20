@@ -32,14 +32,7 @@ export function buildRoiQuery(opts: {
   const tmsDateFilter = brokerageAndDateFilter("e.created_at")
 
   const sql = `
-WITH call_length AS (
-  SELECT
-    call_id,
-    MIN(duration_seconds) AS call_length_seconds
-  FROM raw_call_analyzer__main_call_metrics
-  GROUP BY 1
-),
-call_data AS (
+WITH filtered_calls AS (
   SELECT
     TO_CHAR(DATE_TRUNC('WEEK', c.created_at), 'YYYY-MM-DD') AS WEEK_START,
     CASE c.agent
@@ -50,11 +43,9 @@ call_data AS (
       WHEN 'LOAD_SCHEDULING_AGENT' THEN 'scheduling'
     END AS WORKFLOW,
     c.call_id,
-    c.call_direction,
-    COALESCE(cl.call_length_seconds, 0) AS call_length_seconds
+    c.call_direction
   FROM raw_voice__call c
   LEFT JOIN int_global_config__excluded_brokers ex ON c.brokerage_key = ex.brokerage_key
-  LEFT JOIN call_length cl ON c.call_id = cl.call_id
   LEFT JOIN int_voice__call_status_events cse ON c.call_id = cse.call_id
   LEFT JOIN int_call_analyzer__call_analysis_parsed ca ON c.call_id = ca.call_id
   WHERE ex.brokerage_key IS NULL
@@ -69,6 +60,17 @@ call_data AS (
       'CALL_DISCONNECTED', 'NO_OUTCOME', 'NOT_STARTED',
       'ATTEMPT_FAILED', 'WRONG_NUMBER', 'INVALID_NUMBER', 'NO_ANSWER'
     )
+),
+call_data AS (
+  SELECT
+    fc.WEEK_START,
+    fc.WORKFLOW,
+    fc.call_id,
+    fc.call_direction,
+    COALESCE(MIN(cl.duration_seconds), 0) AS call_length_seconds
+  FROM filtered_calls fc
+  LEFT JOIN raw_call_analyzer__main_call_metrics cl ON fc.call_id = cl.call_id
+  GROUP BY 1, 2, 3, 4
 ),
 call_summary AS (
   SELECT
