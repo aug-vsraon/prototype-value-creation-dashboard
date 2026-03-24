@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { createSnowflakeClient } from "@/lib/snowflake"
 import { buildRoiQuery } from "@/lib/roi-query"
-import { getDemoDashboardData } from "@/lib/demo-data"
 import type {
   DashboardData,
   WeeklyStackedEntry,
@@ -129,11 +128,6 @@ export async function GET(request: Request) {
   const from = url.searchParams.get("from") ?? "2026-02-09"
   const to = url.searchParams.get("to") ?? "2026-03-08"
   const brokerage = url.searchParams.get("brokerage") ?? "transportation-one"
-
-  if (process.env.DATA_MODE !== "live") {
-    const name = url.searchParams.get("name")
-    return NextResponse.json(getDemoDashboardData(from, to, brokerage, name))
-  }
 
   // Two connections for parallel query execution
   const [sf1, sf2] = await Promise.all([createSnowflakeClient(), createSnowflakeClient()])

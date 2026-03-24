@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { createSnowflakeClient } from "@/lib/snowflake"
-import { getDemoBrokerages } from "@/lib/demo-data"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -22,13 +21,7 @@ function titleCase(key: string): string {
   return key.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
 }
 
-export async function GET(request: Request) {
-  if (process.env.DATA_MODE !== "live") {
-    const url = new URL(request.url)
-    const name = url.searchParams.get("name")
-    return NextResponse.json(getDemoBrokerages(name))
-  }
-
+export async function GET() {
   const sf = await createSnowflakeClient()
   try {
     const rows = await sf.query<BrokerageRow>(

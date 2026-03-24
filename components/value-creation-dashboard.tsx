@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Phone,
   Download,
@@ -391,36 +391,26 @@ export default function ValueCreationDashboard() {
   const [hasError, setHasError] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // Read ?name= from the URL for demo mode
-  const demoName = useMemo(() => {
-    if (typeof window === "undefined") return null
-    return new URLSearchParams(window.location.search).get("name")
-  }, [])
-  const nameParam = demoName ? `&name=${encodeURIComponent(demoName)}` : ""
-
   // Start with static data so the page isn't blank
   const [dashData, setDashData] = useState<DashboardData>(() => fetchDashboardData(dateFrom, dateTo))
 
   // Fetch available brokerages on mount
   useEffect(() => {
-    fetch(`/api/brokerages?_=${Date.now()}${nameParam}`)
+    fetch("/api/brokerages")
       .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data: BrokerageOption[]) => {
-        setBrokerages(data)
-        if (data.length > 0 && demoName) setBrokerage(data[0].key)
-      })
+      .then((data: BrokerageOption[]) => setBrokerages(data))
       .catch(() => {
         // Fallback: just show the default
         setBrokerages([{ key: "transportation-one", label: "Transportation One" }])
       })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // Fetch dashboard data from Snowflake when filters change
   useEffect(() => {
     let cancelled = false
     setLoading(true)
 
-    fetch(`/api/dashboard?from=${dateFrom}&to=${dateTo}&brokerage=${encodeURIComponent(brokerage)}${nameParam}`)
+    fetch(`/api/dashboard?from=${dateFrom}&to=${dateTo}&brokerage=${encodeURIComponent(brokerage)}`)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data: DashboardData) => {
         if (!cancelled) {
@@ -439,7 +429,7 @@ export default function ValueCreationDashboard() {
       })
 
     return () => { cancelled = true }
-  }, [dateFrom, dateTo, brokerage]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dateFrom, dateTo, brokerage])
 
   const handleExport = useCallback(() => {
     toast.success("Export ready \u2014 file downloading.", {
