@@ -89,12 +89,16 @@ function formatDateLabel(iso: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Build the fixed demo DashboardData from the curated weekly rows
+// Build demo DashboardData from curated weekly rows for a given date range.
+// All 10 weeks are used for trend computation, but only filtered weeks
+// contribute to totals, workflow cards, and the chart.
 // ---------------------------------------------------------------------------
-function buildDemoData(): DashboardData {
-  // Assign placeholder weekly ISO dates (will be shifted later)
+function buildDemoData(filteredIndices: number[]): DashboardData {
   const baseMonday = "2026-01-05"
-  const weeks: WeeklyStackedEntry[] = WEEKLY_DATA.map((row, i) => {
+
+  // Build weekly stacked entries for filtered weeks only
+  const weeks: WeeklyStackedEntry[] = filteredIndices.map((i) => {
+    const row = WEEKLY_DATA[i]
     const weekIso = addDays(baseMonday, i * 7)
     const dcHrs = hoursForActivity(row.dc_calls, row.dc_emails, 0, 0)
     const ttHrs = hoursForActivity(row.tt_calls, row.tt_emails, row.tt_texts, row.tt_tms)
@@ -116,12 +120,13 @@ function buildDemoData(): DashboardData {
     }
   })
 
-  // Aggregate totals across all weeks
+  // Aggregate totals from FILTERED weeks only
   const dcTotals = { calls: 0, emails: 0, pods: 0, loadsOutreach: 0 }
   const ttTotals = { calls: 0, emails: 0, texts: 0, tms: 0, loadsActioned: 0 }
   const csTotals = { calls: 0, emails: 0, bids: 0, booked: 0 }
 
-  for (const row of WEEKLY_DATA) {
+  for (const i of filteredIndices) {
+    const row = WEEKLY_DATA[i]
     dcTotals.calls += row.dc_calls; dcTotals.emails += row.dc_emails
     dcTotals.pods += row.dc_pods_collected; dcTotals.loadsOutreach += row.dc_loads_with_outreach
     ttTotals.calls += row.tt_calls; ttTotals.emails += row.tt_emails
@@ -135,7 +140,7 @@ function buildDemoData(): DashboardData {
   const ttHoursTotal = hoursForActivity(ttTotals.calls, ttTotals.emails, ttTotals.texts, ttTotals.tms)
   const csHoursTotal = hoursForActivity(csTotals.calls, csTotals.emails, 0, 0)
 
-  // Per-week hours for trend computation
+  // Trends use ALL 10 weeks (not just filtered) so the 4-wk comparison works
   const dcWeeklyHrs = WEEKLY_DATA.map((r) => hoursForActivity(r.dc_calls, r.dc_emails, 0, 0))
   const ttWeeklyHrs = WEEKLY_DATA.map((r) => hoursForActivity(r.tt_calls, r.tt_emails, r.tt_texts, r.tt_tms))
   const csWeeklyHrs = WEEKLY_DATA.map((r) => hoursForActivity(r.cs_calls, r.cs_emails, 0, 0))
@@ -197,7 +202,13 @@ function buildDemoData(): DashboardData {
 
   const totalHours = dcHoursTotal + ttHoursTotal + csHoursTotal
   const weeksCount = weeks.length
-  const avgHoursPerWeek = totalHours / weeksCount
+  const avgHoursPerWeek = weeksCount > 0 ? totalHours / weeksCount : 0
+
+  let firstWeekPartial = false
+  if (weeks.length > 1) {
+    const restAvg = weeks.slice(1).reduce((s, w) => s + w.total, 0) / (weeks.length - 1)
+    firstWeekPartial = weeks[0].total < restAvg * 0.3
+  }
 
   return {
     brokerage: "Demo Company",
@@ -206,50 +217,44 @@ function buildDemoData(): DashboardData {
     totalHours,
     avgHoursPerWeek,
     weeksCount,
-    firstWeekPartial: false,
+    firstWeekPartial,
     weeklyStacked: weeks,
     workflows,
   }
 }
 
 // ---------------------------------------------------------------------------
-// Date shifting — align last data week with the week containing `targetDate`
+// Compute date shift and determine which week indices fall in range
 // ---------------------------------------------------------------------------
-function shiftDates(data: DashboardData, targetDate: string): DashboardData {
-  if (data.weeklyStacked.length === 0) return data
-
-  const lastWeekIso = data.weeklyStacked[data.weeklyStacked.length - 1].weekIso
-  const targetMonday = getMondayOfWeek(new Date(targetDate))
+function computeShiftAndFilteredIndices(from: string, to: string): { dayShift: number; filteredIndices: number[] } {
+  const baseMonday = "2026-01-05"
+  // Last week index = 9 (10 weeks total)
+  const lastWeekIso = addDays(baseMonday, 9 * 7)
+  const targetMonday = getMondayOfWeek(new Date(to))
   const lastMonday = new Date(lastWeekIso)
   const dayShift = Math.round((targetMonday.getTime() - lastMonday.getTime()) / (1000 * 60 * 60 * 24))
 
+  const filteredIndices: number[] = []
+  for (let i = 0; i < WEEKLY_DATA.length; i++) {
+    const shiftedIso = addDays(addDays(baseMonday, i * 7), dayShift)
+    if (shiftedIso >= from && shiftedIso <= to) {
+      filteredIndices.push(i)
+    }
+  }
+
+  return { dayShift, filteredIndices }
+}
+
+// ---------------------------------------------------------------------------
+// Apply date shift to weekly entries
+// ---------------------------------------------------------------------------
+function shiftDates(data: DashboardData, dayShift: number): DashboardData {
   const weeklyStacked: WeeklyStackedEntry[] = data.weeklyStacked.map((w) => {
     const newIso = addDays(w.weekIso, dayShift)
     return { ...w, weekIso: newIso, week: formatWeekLabel(newIso) }
   })
 
   return { ...data, weeklyStacked, lastUpdated: new Date().toISOString().slice(0, 10) }
-}
-
-// ---------------------------------------------------------------------------
-// Filter to requested date range
-// ---------------------------------------------------------------------------
-function filterToRange(data: DashboardData, from: string, to: string): DashboardData {
-  const weeklyStacked = data.weeklyStacked.filter(
-    (w) => w.weekIso >= from && w.weekIso <= to,
-  )
-
-  const weeksCount = weeklyStacked.length
-  const totalHours = weeklyStacked.reduce((s, w) => s + w.total, 0)
-  const avgHoursPerWeek = weeksCount > 0 ? totalHours / weeksCount : 0
-
-  let firstWeekPartial = false
-  if (weeklyStacked.length > 1) {
-    const restAvg = weeklyStacked.slice(1).reduce((s, w) => s + w.total, 0) / (weeklyStacked.length - 1)
-    firstWeekPartial = weeklyStacked[0].total < restAvg * 0.3
-  }
-
-  return { ...data, weeklyStacked, totalHours, avgHoursPerWeek, weeksCount, firstWeekPartial }
 }
 
 // ---------------------------------------------------------------------------
@@ -322,14 +327,14 @@ export function getDemoDashboardData(
   _brokerageKey: string,
   name?: string | null,
 ): DashboardData {
-  // Build the fixed demo dataset
-  let data = buildDemoData()
+  // Determine which weeks fall in the requested range after date shifting
+  const { dayShift, filteredIndices } = computeShiftAndFilteredIndices(from, to)
 
-  // Shift dates so data looks current relative to `to`
-  data = shiftDates(data, to)
+  // Build data with only the filtered weeks contributing to totals/workflows
+  let data = buildDemoData(filteredIndices)
 
-  // Filter to the requested range
-  data = filterToRange(data, from, to)
+  // Shift dates so data looks current
+  data = shiftDates(data, dayShift)
 
   // Scale per prospect name — different prospect = different numbers, same positive trends
   const key = name || "demo-company"
