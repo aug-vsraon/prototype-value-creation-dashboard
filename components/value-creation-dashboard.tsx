@@ -432,10 +432,51 @@ export default function ValueCreationDashboard() {
   }, [dateFrom, dateTo, brokerage])
 
   const handleExport = useCallback(() => {
-    toast.success("Export ready \u2014 file downloading.", {
+    const rows: string[][] = []
+
+    // Header
+    rows.push([
+      "Week", "Document Collection (hrs)", "Track & Trace (hrs)",
+      "Carrier Selection (hrs)", "Load Building (hrs)", "Appointment Scheduling (hrs)",
+      "Total Hours", "Total Interactions",
+    ])
+
+    // Weekly data
+    for (const w of dashData.weeklyStacked) {
+      rows.push([
+        w.weekIso, String(w.dc), String(w.tt), String(w.cs),
+        String(w.lb), String(w.as), String(w.total), String(w.interactions),
+      ])
+    }
+
+    // Blank row + workflow summary
+    rows.push([])
+    rows.push(["Workflow", "Status", "Calls", "Emails", "Texts", "TMS Updates", "Outcome 1", "Outcome 1 Value", "Outcome 2", "Outcome 2 Value", "Hours Saved", "4-Wk Trend"])
+
+    for (const wf of dashData.workflows) {
+      const trend = wf.trend ? `${wf.trend.direction === "up" ? "+" : wf.trend.direction === "down" ? "-" : ""}${wf.trend.pct}%` : "N/A"
+      rows.push([
+        wf.name, wf.status, String(wf.activity.calls), String(wf.activity.emails),
+        String(wf.activity.texts), String(wf.activity.tmsUpdates),
+        wf.outcomes[0]?.label ?? "", String(wf.outcomes[0]?.value ?? 0),
+        wf.outcomes[1]?.label ?? "", String(wf.outcomes[1]?.value ?? 0),
+        String(Math.round(wf.hoursSaved)), trend,
+      ])
+    }
+
+    const csvContent = rows.map(r => r.map(cell => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `impact-scorecard-${dashData.brokerage.toLowerCase().replace(/\s+/g, "-")}-${dateFrom}-to-${dateTo}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+
+    toast.success("Export ready — file downloading.", {
       icon: <CheckCircle size={16} className="text-[#16A34A]" />,
     })
-  }, [])
+  }, [dashData, dateFrom, dateTo])
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
