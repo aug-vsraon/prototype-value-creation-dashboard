@@ -383,34 +383,38 @@ function computeDateRange(preset: DatePreset): { from: string; to: string } {
   }
 }
 
-export default function ValueCreationDashboard() {
+export default function ValueCreationDashboard({ demoName }: { demoName?: string } = {}) {
   const [preset, setPreset] = useState<DatePreset>("last30")
   const { from: dateFrom, to: dateTo } = computeDateRange(preset)
-  const [brokerage, setBrokerage] = useState("transportation-one")
+  const [brokerage, setBrokerage] = useState("acme-logistics")
   const [brokerages, setBrokerages] = useState<BrokerageOption[]>([])
   const [hasError, setHasError] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  const nameParam = demoName ? `&name=${encodeURIComponent(demoName)}` : ""
 
   // Start with static data so the page isn't blank
   const [dashData, setDashData] = useState<DashboardData>(() => fetchDashboardData(dateFrom, dateTo))
 
   // Fetch available brokerages on mount
   useEffect(() => {
-    fetch("/api/brokerages")
+    fetch(`/api/brokerages?${nameParam ? `name=${encodeURIComponent(demoName!)}` : ""}`)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data: BrokerageOption[]) => setBrokerages(data))
-      .catch(() => {
-        // Fallback: just show the default
-        setBrokerages([{ key: "transportation-one", label: "Transportation One" }])
+      .then((data: BrokerageOption[]) => {
+        setBrokerages(data)
+        if (data.length > 0) setBrokerage(data[0].key)
       })
-  }, [])
+      .catch(() => {
+        setBrokerages([{ key: "acme-logistics", label: "Acme Logistics" }])
+      })
+  }, [demoName])
 
-  // Fetch dashboard data from Snowflake when filters change
+  // Fetch dashboard data when filters change
   useEffect(() => {
     let cancelled = false
     setLoading(true)
 
-    fetch(`/api/dashboard?from=${dateFrom}&to=${dateTo}&brokerage=${encodeURIComponent(brokerage)}`)
+    fetch(`/api/dashboard?from=${dateFrom}&to=${dateTo}&brokerage=${encodeURIComponent(brokerage)}${nameParam}`)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data: DashboardData) => {
         if (!cancelled) {
@@ -421,21 +425,58 @@ export default function ValueCreationDashboard() {
       })
       .catch(() => {
         if (!cancelled) {
-          // Fall back to static data
           setDashData(fetchDashboardData(dateFrom, dateTo))
           setLoading(false)
-          toast.error("Could not reach Snowflake — showing cached data.")
+          toast.error("Could not load data.")
         }
       })
 
     return () => { cancelled = true }
-  }, [dateFrom, dateTo, brokerage])
+  }, [dateFrom, dateTo, brokerage, nameParam])
 
   const handleExport = useCallback(() => {
-    toast.success("Export ready \u2014 file downloading.", {
+    const rows: string[][] = []
+
+    rows.push([
+      "Week", "Document Collection (hrs)", "Track & Trace (hrs)",
+      "Carrier Selection (hrs)", "Load Building (hrs)", "Appointment Scheduling (hrs)",
+      "Total Hours", "Total Interactions",
+    ])
+
+    for (const w of dashData.weeklyStacked) {
+      rows.push([
+        w.weekIso, String(w.dc), String(w.tt), String(w.cs),
+        String(w.lb), String(w.as), String(w.total), String(w.interactions),
+      ])
+    }
+
+    rows.push([])
+    rows.push(["Workflow", "Status", "Calls", "Emails", "Texts", "TMS Updates", "Outcome 1", "Outcome 1 Value", "Outcome 2", "Outcome 2 Value", "Hours Saved", "4-Wk Trend"])
+
+    for (const wf of dashData.workflows) {
+      const trend = wf.trend ? `${wf.trend.direction === "up" ? "+" : wf.trend.direction === "down" ? "-" : ""}${wf.trend.pct}%` : "N/A"
+      rows.push([
+        wf.name, wf.status, String(wf.activity.calls), String(wf.activity.emails),
+        String(wf.activity.texts), String(wf.activity.tmsUpdates),
+        wf.outcomes[0]?.label ?? "", String(wf.outcomes[0]?.value ?? 0),
+        wf.outcomes[1]?.label ?? "", String(wf.outcomes[1]?.value ?? 0),
+        String(Math.round(wf.hoursSaved)), trend,
+      ])
+    }
+
+    const csvContent = rows.map(r => r.map(cell => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `impact-scorecard-${dashData.brokerage.toLowerCase().replace(/\s+/g, "-")}-${dateFrom}-to-${dateTo}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+
+    toast.success("Export ready — file downloading.", {
       icon: <CheckCircle size={16} className="text-[#16A34A]" />,
     })
-  }, [])
+  }, [dashData, dateFrom, dateTo])
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -456,18 +497,20 @@ export default function ValueCreationDashboard() {
                 <p className="text-sm text-[#6B7280] mt-0.5">{dashData.brokerage}</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <select
-                  value={brokerage}
-                  onChange={(e) => setBrokerage(e.target.value)}
-                  className="px-2.5 py-1.5 border border-[#E5E7EB] rounded-md text-sm text-[#111827] bg-white focus:outline-none focus:ring-2 focus:ring-[#16A34A] focus:border-transparent"
-                >
-                  {brokerages.length === 0 && (
-                    <option value={brokerage}>{dashData.brokerage}</option>
-                  )}
-                  {brokerages.map((b) => (
-                    <option key={b.key} value={b.key}>{b.label}</option>
-                  ))}
-                </select>
+                {!demoName && (
+                  <select
+                    value={brokerage}
+                    onChange={(e) => setBrokerage(e.target.value)}
+                    className="px-2.5 py-1.5 border border-[#E5E7EB] rounded-md text-sm text-[#111827] bg-white focus:outline-none focus:ring-2 focus:ring-[#16A34A] focus:border-transparent"
+                  >
+                    {brokerages.length === 0 && (
+                      <option value={brokerage}>{dashData.brokerage}</option>
+                    )}
+                    {brokerages.map((b) => (
+                      <option key={b.key} value={b.key}>{b.label}</option>
+                    ))}
+                  </select>
+                )}
                 <div className="inline-flex rounded-lg border border-[#E5E7EB] overflow-hidden">
                   {DATE_PRESETS.map((p) => (
                     <button
