@@ -119,7 +119,8 @@ function AssumptionsBar() {
   return (
     <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg px-5 py-3 flex flex-wrap items-center gap-x-6 gap-y-1">
       <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Assumptions</span>
-      <span className="text-xs text-[#6B7280]">Emails &amp; texts: <span className="font-medium text-[#374151]">30 sec each</span></span>
+      <span className="text-xs text-[#6B7280]">Emails: <span className="font-medium text-[#374151]">1 min each</span></span>
+      <span className="text-xs text-[#6B7280]">Texts: <span className="font-medium text-[#374151]">30 sec each</span></span>
       <span className="text-xs text-[#6B7280]">TMS updates: <span className="font-medium text-[#374151]">1 min each</span></span>
       <span className="text-xs text-[#6B7280]">Calls: <span className="font-medium text-[#374151]">Actual duration</span></span>
     </div>
