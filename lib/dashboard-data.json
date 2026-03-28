@@ -4,7 +4,7 @@
     "generated_date": "2026-03-10"
   },
   "parameters": {
-    "minutes_per_email": 0.5,
+    "minutes_per_email": 1,
     "minutes_per_call": 2,
     "minutes_per_message": 0.5,
     "minutes_per_tms_update": 1

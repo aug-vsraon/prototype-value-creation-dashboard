@@ -113,7 +113,7 @@ const WEEKLY_DATA: WeekRow[] = [
 ]
 
 // Time assumptions (match the live dashboard)
-const MIN_PER_EMAIL = 0.5
+const MIN_PER_EMAIL = 1
 const MIN_PER_TEXT = 0.5
 const MIN_PER_TMS = 1
 const MIN_PER_CALL = 2
