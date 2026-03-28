@@ -41,6 +41,7 @@ export interface WeeklyStackedEntry {
   cs: number
   lb: number
   as: number
+  qt: number
   total: number
   interactions: number
 }
@@ -207,7 +208,7 @@ export function fetchDashboardData(from: string, to: string): DashboardData {
     if (!weeklyMap.has(weekIso)) {
       weeklyMap.set(weekIso, {
         week: label.replace(", 2026", "").replace(", 2025", ""),
-        weekIso, dc: 0, tt: 0, cs: 0, lb: 0, as: 0, total: 0, interactions: 0,
+        weekIso, dc: 0, tt: 0, cs: 0, lb: 0, as: 0, qt: 0, total: 0, interactions: 0,
       })
     }
     return weeklyMap.get(weekIso)!
@@ -231,7 +232,7 @@ export function fetchDashboardData(from: string, to: string): DashboardData {
 
   const weeklyStacked = Array.from(weeklyMap.values())
     .sort((a, b) => a.weekIso.localeCompare(b.weekIso))
-    .map(w => ({ ...w, dc: Math.round(w.dc), tt: Math.round(w.tt), cs: Math.round(w.cs), lb: Math.round(w.lb), as: Math.round(w.as), total: Math.round(w.dc + w.tt + w.cs + w.lb + w.as) }))
+    .map(w => ({ ...w, dc: Math.round(w.dc), tt: Math.round(w.tt), cs: Math.round(w.cs), lb: Math.round(w.lb), as: Math.round(w.as), qt: Math.round(w.qt), total: Math.round(w.dc + w.tt + w.cs + w.lb + w.as + w.qt) }))
 
   const weeksCount = weeklyStacked.length
   const avgHoursPerWeek = weeksCount > 0 ? totalHours / weeksCount : 0
