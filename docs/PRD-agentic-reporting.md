@@ -23,7 +23,7 @@ The next product iteration sits at the intersection of these two threads: take t
 
 **For Augment:** Every custom reporting request today flows to a small engineering team. Metabase has been the escape valve, but it produces per-customer debt, inconsistent metric definitions, and zero product stickiness. The portal is the right surface — but only if it can fulfill the range of reporting needs without infinite one-off build work.
 
-**The opportunity:** Augment's data models (Snowflake + dbt mart tables), combined with a conversational AI layer already proven internally via "Mr. SQL," can enable a class of reporting experience that no incumbent TMS or logistics BI tool offers: a user describes what they want to know, and Augie builds the report in real time, persists it to a dashboard, and answers follow-up questions — all inside the portal.
+**The opportunity:** Augment's data models (Snowflake + dbt mart tables), combined with a conversational AI layer already proven internally via "Mr. SQL," can enable a class of reporting experience that no incumbent TMS or logistics BI tool offers: a user describes what they want to know, and Augie builds the report in real time, persists it to a dashboard, and answers follow-up questions — all inside the portal. Over time, this turns Augie into the operator's **system of record** — the place they go to understand their own business, displacing ad-hoc TMS exports and Metabase one-offs with a living, self-improving reporting layer. This is especially high-leverage given that most freight brokerages have poor internal data infrastructure; Augie fills a gap that their own TMS cannot.
 
 ---
 
@@ -125,7 +125,7 @@ As a Finance Business Partner validating Augment's value at a budget cycle, I wa
 As an executive, I want to export the current dashboard view (with my applied date range and parameters) in a format I can embed in a board deck or QBR, so I can share the numbers without screenshots or manual re-entry.
 
 **US-21 — Emotional Storytelling / Visual Narrative**
-As a VP of Operations sharing this dashboard with her CFO, I want the dashboard to feel like a premium, purpose-built product — not a generic BI tool — so the visual presentation reinforces the credibility of the ROI claim.
+As a VP of Operations sharing this dashboard with her CFO, I want the dashboard to feel like a premium, purpose-built product — not a generic BI tool — so the visual presentation reinforces the credibility of the ROI claim. *(Art's direction, May 4, 2026: "The dashboard's emotional storytelling is incredibly important and needs to be visually compelling beyond just rendering standard charts and tables." This user story is a first-class product requirement, not a nice-to-have.)*
 
 ---
 
@@ -233,31 +233,32 @@ As a product manager or CS lead, I want to see how frequently each customer is a
 
 **Scope note:** Total Program Value headline = labor cost saved only. Secondary metrics (carrying cost savings, after-hours capacity value) are displayed as call-out cards, not in the headline calculation.
 
-**Sign-off required:** Cheng must approve the Total Program Value methodology before any customer-facing publication.
-
 ---
 
 ### 5C. Agentic / Conversational Reporting
 
-**Strategic context:** Art has aligned that chat-based custom report creation is the priority "killer feature" for reporting. The vision: a user describes what they need in natural language → Augie generates the report → user iterates conversationally → report is saved to a dashboard. This experience is what turns reporting from a Metabase replacement into a uniquely Augment capability.
+**Strategic context:** Art has identified conversational custom report creation as the priority "killer feature" for reporting. At the May 4, 2026 meeting (with Art, Tom, and Vikram), Art directed that the goal is for users to converse with Augie inside the portal to create reports without writing SQL — and that this capability is what makes Augie the customer's **system of record** for their business. From Art's Feb 26, 2026 feedback (via #reporting-chat): *"A Reporting agent — This is longer-term and Text-to-SQL powered, conversational"* was identified as a core product component alongside the Value Creation Dashboard.
 
-**Architecture dependency:** The chat interface will be the Converse Cell persistent agent setup that Dana has proposed and Art has endorsed. Reporting will be the second use case for this interface (after voice author). The implementation must not create parallel tech debt — shared components with the global Augie chat interface.
+**The "wow factor" framing:** Per Art's direction, Augment should skip the intermediate step of Q&A on existing reports as a staged V1 gate and go directly to custom report generation. The wow factor — a user describes what they want and Augie builds it — is what creates the "system of record" experience that differentiates Augment from any BI tool a brokerage has access to today.
+
+**Architecture:** Agentic reporting will rely on existing infrastructure, including the Converse Cell persistent agent interface that Dana has designed and Art has endorsed. Reporting is the second use case for this interface (after voice author). Agentic reporting coordination with the Converse Cell timeline should not block delivery — the two workstreams align but are not sequentially dependent. The implementation must share components with the global Augie chat interface; no parallel tech debt.
 
 **Data layer:** The reporting agent must query exclusively from the mart tables (Snowflake, dbt). It must not compose SQL against raw tables. This is both a correctness requirement and a prerequisite for data consistency across surfaces (portal, chat, exports).
 
-**V1 agentic requirements:**
-- Chat interface available on all dashboard and report screens
-- Augie can answer natural-language questions about the current report using chart metadata and the mart schema
-- Multi-turn conversation: user can follow up, rephrase, push back ("that's wrong — it should be excluding cancelled loads")
-- When Augie cannot answer correctly, it offers to create a Linear ticket for the reporting team
+**V1 agentic requirements (custom report generation):**
+- Chat interface available on all dashboard and report screens within the portal
+- Augie can generate a new report from a natural-language description: user describes what they want → Augie produces SQL against the mart schema → report renders in the portal
+- Multi-turn iteration: user can follow up, rephrase, or correct ("actually, exclude cancelled loads") and see the updated report immediately
+- Generated reports can be saved, named, and added to any dashboard
+- Augie can answer questions about the current view (chart context + mart schema) within the same conversation thread
+- When Augie cannot answer correctly or a generated report is wrong, it offers to create a Linear ticket for the reporting team
 
 **V2 agentic requirements:**
-- Augie can generate a new report from a natural-language description
-- User can validate and iterate on the generated report's SQL and display before saving
-- Generated reports can be saved, named, and added to any dashboard
-- Augie can edit existing reports on request and save as a new version
+- Augie can edit existing saved reports on request and save as a new version
+- User can inspect and validate the generated SQL before saving (power-user transparency mode)
+- Augie can create and populate a new named dashboard from a conversation ("Set me up a weekly ops dashboard for Load Building")
 
-**Internal / staged rollout:** Mr. SQL (Slack agent) serves as the internal POC and feedback vehicle. Lessons from Mr. SQL's usage patterns (query types, common failure modes, feedback tickets) feed directly into the product agent's schema and guardrails.
+**Internal POC / accuracy gate:** Mr. SQL (internal Slack agent) is the POC and feedback vehicle for the product agent. Current eval baseline: 0.746 with Verified Queries vs. 0.665 without. The accuracy threshold required before customer-facing rollout is an open question — see Section 9. Lessons from Mr. SQL query patterns, failure modes, and Verified Query expansions feed directly into the product agent's schema and guardrails.
 
 ---
 
@@ -273,7 +274,7 @@ As a product manager or CS lead, I want to see how frequently each customer is a
 - Dispatchers, carrier reps, load operators: no reporting access (access gate page with instructions to request access)
 - Group / aggregator accounts (Armstrong model): admins can toggle between corporate view and per-agent views; agents see only their own data
 - Parameter editing: available to all managers and executives in V1; admin-only restriction is a V2 option
-- Custom report ownership: scoped to personal, brokerage, or role-based groups; definition TBD with Julia (platform RBAC work) and Knowledge team
+- Custom report ownership: default scope is **customer-key (brokerage)** — reports are owned and shared at the brokerage level, not tied to an individual user. For agent-model accounts (e.g., ATG's agent model, Landstar's agent model), group-level scoping applies per UX direction. Personal vs. brokerage-wide visibility distinction is a V2 option pending Julia's RBAC model.
 
 ---
 
@@ -284,6 +285,11 @@ As a product manager or CS lead, I want to see how frequently each customer is a
 **Data refresh:** Cadence to be defined with engineering per workflow. Every view must display a "last updated" timestamp. No view should imply real-time data unless the pipeline supports it.
 
 **Schema exposure:** The mart table schema and semantic layer must be accessible to the reporting agent. New workflows added to mart models should become queryable by the agent without manual schema registration.
+
+**Three-layer reporting model:** Reporting requirements span three layers of increasing abstraction:
+1. **Operational metrics** — what Augie did (volumes, actions, coverage, throughput). Addressed by standard workflow dashboards.
+2. **Compliance / outcome metrics** — SOP adherence and business outcomes (e.g., are loads being built correctly per the customer's SOP, are T&T communications being sent at the right intervals). This layer is addressed through the semantic layer (Cortex semantic views, Britain's SOP-as-JSON system) and surfaced primarily via the custom/agentic reporting path. Reports that prove universally useful across customers should be promoted to the standard report suite.
+3. **ROI / value metrics** — what Augie is worth in dollar terms. Addressed by the Value Creation Dashboard.
 
 **Metric registry:** Every metric displayed in the portal must have a corresponding entry in the metric reference document (currently: `docs/metric-definitions.md`). The registry is the authoritative source for metric names, formulas, inclusion/exclusion rules, and attribution logic.
 
@@ -325,13 +331,19 @@ As a product manager or CS lead, I want to see how frequently each customer is a
 
 ## 9. Open Questions
 
-1. **Converse Cell timeline:** When is voice author's implementation complete, and when does Reporting become the second case? Agentic reporting scope should not block on this but needs to coordinate.
-2. **Harish alignment:** What is Harish's current mental model for agentic reporting, and what would he find most compelling for sales? The vision (unlike Metabase) has no industry proxy — it needs to be explicitly pitched and validated before committing the roadmap.
-3. **RBAC model:** What has Julia/platform decided on for portal RBAC? The Armstrong multi-level reporting use case cannot be designed until the permissions model is defined.
-4. **Scheduled exports:** Knowledge team is building extracted report functionality — can reporting borrow this, or does it need to build separately?
-5. **Evidence.dev / custom BI framework:** Tom explored Evidence.dev (YAML-based, agent-editable, open-source) as a rendering layer. Is this still under consideration for the agentic reporting UI, or are we committed to a first-party component approach?
-6. **Value dashboard emotional design:** What does "visually compelling beyond rendering standard charts" mean in practice? Art's guidance needs to be translated into concrete UX direction before design begins.
-7. **Custom week definition:** Metabase launch notes flagged that some customers count weeks as Mon–Sun. How many customers is this, and does it block post-Metabase parity?
+1. **Harish alignment:** What is Harish's current mental model for agentic reporting, and what would he find most compelling for sales? The "system of record" vision has no direct industry proxy — it needs to be explicitly pitched and validated with GTM leadership before committing the roadmap publicly.
+
+2. **RBAC model:** What has Julia/platform decided on for portal RBAC? The Armstrong multi-level reporting use case (US-31), and the full design of group-level scoping for ATG/Landstar agent models, cannot be finalized until the permissions model is defined.
+
+3. **Scheduled exports:** The Knowledge team is building extracted report functionality — can reporting borrow this pipeline, or does reporting need to build a separate scheduled export mechanism?
+
+4. **Value dashboard emotional design:** Art's May 4 feedback confirmed the dashboard must be "visually compelling beyond rendering standard charts and tables" and that emotional storytelling is "incredibly important." What does this mean in concrete UX terms? This needs to be translated into design direction (layout, animation, data visualization choices) before design begins. Marsha's design exploration should take Art's framing as a primary input.
+
+5. **Mr. SQL accuracy gate:** What is the minimum accuracy threshold (current baseline: 0.746 eval score with Verified Queries) that must be achieved before the agentic agent is rolled out to customers? A suite of workflow-specific evals is needed. The team must define acceptable accuracy targets and testing methodology before committing to a customer-facing GA date for agentic reporting. Mr. SQL's current failures in customer-facing Slack channels are a signal that accuracy is not yet production-ready.
+
+6. **Operator-layer data latency:** Executive and manager-level reporting is scoped to non-real-time data (batch refresh cadence). As reporting expands to front-line operators (US-07, US-09), data recency requirements will change significantly — load-level drill-downs for a driver manager managing active loads may require near-real-time refresh. When does this become necessary, and what pipeline changes (streaming vs. faster batch) are required to support it?
+
+7. **Custom week definition:** Metabase launch notes flagged that some customers define their reporting week as Mon–Sun rather than Sun–Sat. How many customers is this, and does it block post-Metabase parity for those accounts?
 
 ---
 
