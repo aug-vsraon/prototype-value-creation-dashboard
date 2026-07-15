@@ -8,23 +8,40 @@ This avoids building the custom `reporting-service` worker for the pilot.
 
 | File | Purpose |
 |------|---------|
-| `00-inspect-po-schema.sql` | **Run first.** Confirms the real JSON field names + status values. |
-| `ferguson-po-reports.sql`  | One native-SQL Question per outcome bucket (drafts). |
+| `00-inspect-po-schema.sql` | Historical schema probe (targets the pre-2026-07-06 `purchaseOrders[]` paths; superseded). |
+| `ferguson-po-reports.sql`  | One native-SQL Question per outcome bucket — **verified against live prod data 2026-07-14**. |
+
+## Verification status (2026-07-14)
+
+All JSON paths, the status enum, and all six query shapes were verified by
+running them against prod Snowflake (Metabase "Snowflake Prod" connection,
+database id 34) and cross-checking the existing WISMO Metabase cards in
+collection 11683 (notably "Ferguson Export - All Update Data (line level)" /
+card 32870, whose extraction pattern these queries reuse). Key facts:
+
+- The classifier emits `emailAnalysisResult.updates[]` since **2026-07-06**
+  (the old `purchaseOrders[]` extraction path in the tech design is obsolete).
+  All queries floor on that date.
+- Status enum: `SHIPPED | DELIVERED | PICKED_UP | NOT_SHIPPED | PARTIAL |
+  CANCELLED | NOT_FOUND | NEEDS_PO_COPY | UNKNOWN`. `NOT_FOUND` and
+  `CANCELLED` are first-class — the `exceptionReason` dependency is gone.
+- Line/logon identity comes from `PROD.LOAD.LOAD.CUSTOMDATA:purchaseOrders[]`
+  (`account` = logon, `lineItems[].poLine`/`alt1`), vendor from
+  `LOAD.CUSTOMERNAME`. PO-scoped updates fan out to all lines on the PO.
+- Queries read `ANALYTICS.DBT_PROD.MART_AGENT_ORCHESTRATOR__EMAIL_EVENTS`
+  (dbt mart, refreshed hourly), not the raw `AGENT_ORCHESTRATOR.EVENT` table.
 
 ## Order of operations
 
-1. **Verify field paths.** Run `00-inspect-po-schema.sql` in Metabase against the
-   Snowflake connection. Read the actual keys off `purchase_order_json` and the
-   real `status` values. Then fix every path tagged `ASSUMED` in
-   `ferguson-po-reports.sql`. **Nothing is trustworthy until this is done** — the
-   sub-field names (line item, ship date, ETA, tracking, vendor, buyer, logon,
-   POD flag) are best-guesses.
-2. **Create one Question per report** (blocks 1–6 in `ferguson-po-reports.sql`).
-3. **Add the `{{logon}}` variable** as a text/field filter on each ERP-upload
-   Question (reports 4 and 5) so a single Question drives every per-logon file.
-4. **Build subscriptions** (below).
-5. **Sanity-check a live run** with someone who knows Ferguson's data before
-   turning delivery on — especially the status→bucket mapping.
+1. **Create one Question per report** (blocks 1–6 in `ferguson-po-reports.sql`)
+   on the "Snowflake Prod" connection.
+2. **Add the `{{logon}}` variable** (text, optional) on the ERP-upload
+   Questions (reports 1, 2, 4, 5) so a single Question drives every per-logon
+   file. Report 6 needs a `{{grace_days}}` number variable **with default 7**.
+3. **Build subscriptions** (below).
+4. **Sanity-check a live run** with someone who knows Ferguson's data before
+   turning delivery on — especially the latest-update-wins dedupe (each PO-line
+   appears only in the bucket of its most recent supplier update).
 
 ## Delivery via subscriptions
 
@@ -51,17 +68,31 @@ matching Ferguson's "separate reports by outcome" requirement.
 
 ## Known gaps / caveats
 
-- **`exceptionReason` dependency.** "PO not found" (report 3) and "Cancelled"
-  (report 5) both sit under `status='EXCEPTION'` until the classifier
-  `exceptionReason` field ships. They overlap until then; each query has a note
-  on the one-line filter change to make once it lands.
-- **Fuzzy date normalization** ("mid-August" → Aug 15) is only partially doable
-  in SQL. Best handled upstream in the classifier; report 4 falls back to raw
-  text when it can't parse.
-- **Report 6 (never responded)** is a placeholder — the "no reply within N days"
-  signal likely needs an outbound/inbound event join, not the NEW_EMAIL
-  extraction. Source must be confirmed.
+- **POD-received flag (report 2) is blocked.** Verified: no structured POD
+  field exists anywhere in `emailAnalysisResult`. The column is emitted blank
+  so the CSV shape is stable; needs a classifier field (or an
+  attachment-summary heuristic) to populate. Eng follow-up.
+- **Buyer (report 3) is blocked.** Verified: no buyer field in the email
+  extraction or in load `customData:purchaseOrders[]`. Emitted blank. Needs
+  Ferguson to include buyer in the PO upload feed, or an eng-side enrichment.
+- **Fuzzy date normalization** ("mid-August" → Aug 15) is handled in SQL for
+  the common patterns (mid/early/beginning/late/end + month name → 15th / 5th /
+  25th; verified working on live rows). Relative phrases with no month name
+  ("2-3 business days", "end of week next week") fall back to a claimed future
+  ship date + 3, then Ferguson's own `updatedArrivalDate`; the verbatim vendor
+  text ships in its own column either way. Full normalization belongs in the
+  classifier (`etaDate` is only populated for unambiguous dates today).
+- **Report 6 (never responded)** is implemented via the outbound-vs-inbound
+  thread join on the email-events mart (same pattern as the existing "WISMO
+  Custom - Non-Responder Vendor Domains" card). Caveats: zero delivery-failure
+  bounces are observable in this pipeline, so silent deliverability problems
+  look identical to non-response; some outreach goes to Ferguson buyers
+  (@ferguson.com) rather than vendor contacts — the query prefers non-Ferguson
+  addresses when picking the contact to display.
+- **UNKNOWN-status updates (~4%) land in no report** by design — they carry no
+  actionable outcome. If Ferguson wants them, they'd go on report 3's review
+  file.
 - **CSV polish** (exact filename, BOM/quoting) is limited in Metabase vs. a
   custom worker. Acceptable for the pilot; revisit if Trilogy upload is strict.
-- **Buyer/data-derived routing** is out of scope for the reports — all CSVs go to
+- **Per-row buyer routing** is out of scope for the reports — all CSVs go to
   the static shared inbox. Per-row buyer alerts are a separate Augie action.

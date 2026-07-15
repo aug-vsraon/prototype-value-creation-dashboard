@@ -1,5 +1,10 @@
 -- ============================================================================
--- STEP 0 — RUN THIS FIRST in Metabase (Snowflake connection).
+-- SUPERSEDED 2026-07-14 — kept for history only.
+--
+-- This probe targets the pre-2026-07-06 purchaseOrders[] extraction, which no
+-- longer exists: the classifier now emits emailAnalysisResult.updates[]. All
+-- paths were verified directly against prod (see README and
+-- ferguson-po-reports.sql headers); there is nothing left to probe here.
 --
 -- Purpose: confirm the real JSON shape of DATA:emailAnalysisResult:purchaseOrders[]
 -- so the field paths used in ferguson-po-reports.sql can be corrected.
