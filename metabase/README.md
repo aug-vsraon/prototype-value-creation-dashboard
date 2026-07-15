@@ -31,15 +31,33 @@ card 32870, whose extraction pattern these queries reuse). Key facts:
 - Queries read `ANALYTICS.DBT_PROD.MART_AGENT_ORCHESTRATOR__EMAIL_EVENTS`
   (dbt mart, refreshed hourly), not the raw `AGENT_ORCHESTRATOR.EVENT` table.
 
-## Order of operations
+## Deployed (2026-07-14)
 
-1. **Create one Question per report** (blocks 1–6 in `ferguson-po-reports.sql`)
-   on the "Snowflake Prod" connection.
-2. **Add the `{{logon}}` variable** (text, optional) on the ERP-upload
-   Questions (reports 1, 2, 4, 5) so a single Question drives every per-logon
-   file. Report 6 needs a `{{grace_days}}` number variable **with default 7**.
-3. **Build subscriptions** (below).
-4. **Sanity-check a live run** with someone who knows Ferguson's data before
+The Questions and dashboard are **live** in the WISMO collection
+(https://augment.metabaseapp.com/collection/11683-wismo), created from the
+blocks in `ferguson-po-reports.sql`:
+
+| Report | Card ID | Rows at deploy |
+|---|---|---|
+| 1 Shipped | 34923 | 80 |
+| 2 Delivered / Pickup | 34924 | 10 |
+| 3 PO Not Found | 34925 | 13 |
+| 4 Not Shipped (Latest ETA) | 34926 | 55 |
+| 5 Cancelled | 34927 | 33 |
+| 6 Never Responded | 34928 | 389 |
+
+Dashboard: **Ferguson PO Outcome Reports** —
+https://augment.metabaseapp.com/dashboard/14290 — with a **Logon** text filter
+mapped to reports 1–5 (`{{logon}}`, optional) and a **Grace Days** number
+filter mapped to report 6 (`{{grace_days}}`, required, default 7). All six
+cards executed successfully at deploy time.
+
+## Remaining manual steps
+
+1. **Build subscriptions** (below) — NOT created programmatically: emailing
+   Ferguson's shared inbox is customer-facing and needs a human go/no-go
+   (and a check of the `subscription-allowed-domains` admin setting).
+2. **Sanity-check a live run** with someone who knows Ferguson's data before
    turning delivery on — especially the latest-update-wins dedupe (each PO-line
    appears only in the bucket of its most recent supplier update).
 
